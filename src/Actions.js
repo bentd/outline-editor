@@ -1,9 +1,11 @@
+// VENDOR
 import $ from "jquery";
 import uuidv1 from "uuid/v1";
 
-const UPDATE_ACTIVE = "UPDATE_ACTIVE";
+const UPDATE_FOCUSED = "UPDATE_FOCUSED";
 const UPDATE_ROOT = "UPDATE_ROOT";
 const ADD_BULLET = "ADD_BULLET";
+const ADD_SUB_BULLET = "ADD_SUB_BULLET";
 const EDIT_BULLET = "EDIT_BULLET";
 const DELETE_BULLET = "DELETE_BULLET";
 const INDENT_BULLET = "INDENT_BULLET";
@@ -14,17 +16,15 @@ const GO_DOWN = "GO_DOWN";
 const GO_UP = "GO_UP";
 const TOGGLE_COLLAPSE = "TOGGLE_COLLAPSE";
 
-
-function updateActive(position) {
+function updateFocused(address) {
   return {
-    type: UPDATE_ACTIVE,
+    type: UPDATE_FOCUSED,
     exec: (state) => {
-      state.active = position;
+      state.root.focused = address;
       return state;
     }
   }
 }
-
 
 function updateRoot(root) {
   return {
@@ -37,28 +37,35 @@ function updateRoot(root) {
   }
 }
 
-function addBullet(position, uuid) {
+function addBullet(address, uuid) {
   return {
     type: ADD_BULLET,
-    position,
-    uuid,
     exec: (state) => {
-      let childPosition = last(position);
-      let parent = getNode(ancestors(position), state.root);
-      parent.children.splice(childPosition+1, 0, createNode(uuid));
+      let parent = getNode(ancestors(address), state.root);
+      parent.children.splice((getPosition(copy(address), state.root) + 1), 0, createNode(uuid));
       focusNode({id: uuid});
       return state;
     }
   }
 }
 
-function editBullet(position, content) {
+function addSubBullet(address, uuid) {
+  return {
+    type: ADD_SUB_BULLET,
+    exec: (state) => {
+      let parent = getNode(address, state.root);
+      parent.children.push(createNode(uuid));
+      focusNode({id: uuid});
+      return state;
+    }
+  }
+}
+
+function editBullet(address, content) {
   return {
     type: EDIT_BULLET,
-    position,
-    content,
     exec: (state) => {
-      let node = getNode(position.slice(), state.root);
+      let node = getNode(copy(address), state.root);
       node.content = content;
       focusNode(node);
       return state;
@@ -66,78 +73,77 @@ function editBullet(position, content) {
   }
 }
 
-function deleteBullet(position) {
+function deleteBullet(address) {
   return {
     type: DELETE_BULLET,
-    position,
     exec: (state) => {
-      if (ancestors(position).length === 1 && last(position) === 0) {
+      let parent = getNode(ancestors(address), state.root);
+      let position = getPosition(copy(address), state.root);
+      if ((isRootChild(address, state.root) && isFirstChild(copy(address), state.root)) ||
+          (parent.children[position].length > 0) || (parent.children[position].note !== "")) {
+        parent.children.splice(position, 1);
         return state;
       }
-      let parent = getNode(ancestors(position), state.root);
-      let node = parent.children.splice(last(position), 1)[0];
-      if (node.children.length > 0) { return state }
-      if (last(position) > 0) {
-        let siblingAbove = parent.children.slice(last(position)-1)[0];
-        focusNode(siblingAbove);
+      if (position > 0) {
+        parent.children.splice(position, 1);
+        focusNode(siblingAbove(copy(address), state.root));
         return state;
       }
       else {
-        if (state.active.length > 0) {
-          return state;
-        }
-        else {
-          focusNode(parent);
-          return state;
-        }
+        parent.children.splice(position, 1);
+        focusNode(parent);
+        return state;
       }
-      return state;
     }
   }
 }
 
-function indentBullet(position) {
+function indentBullet(address) {
   return {
     type: INDENT_BULLET,
-    position,
     exec: (state) => {
-      if (last(position) === 0) { return state }
-      let tree = getTree(ancestors(position), state.root);
+      let position = getPosition(copy(address), state.root);
+      if (getPosition(copy(address), state.root) === 0) { return state }
+      let tree = getTree(ancestors(address), state.root);
       let oldParent = last(tree);
-      let newParent = getNode([...ancestors(position), (last(position)-1)], state.root);
-      let child = oldParent.children.splice(last(position),1)[0];
+      let newParent = siblingAbove(copy(address), state.root);
+      let child = oldParent.children.splice(position, 1)[0];
       newParent.children.push(child);
       tree.push(newParent);
-      uncollapseTree(tree);
+      for (let i in tree) {
+        if (tree[i].collapsed !== null) {
+          tree[i].collapsed = false;
+          uncollapseNode(tree[i]);
+        }
+      }
       focusNode(child);
       return state;
     }
   }
 }
 
-function unindentBullet(position) {
+function unindentBullet(address) {
   return {
     type: UNINDENT_BULLET,
-    position,
     exec: (state) => {
-      if (position.length < 3) { return state }
-      let parent = getNode(ancestors(position), state.root);
-      let child = parent.children.splice(last(position), 1)[0];
-      let newParent = getNode(ancestors(ancestors(position)), state.root);
-      newParent.children.splice(last(ancestors(position))+1, 0, child);
+      if (address.length === 1) { return state }
+      let position = getPosition(copy(address), state.root);
+      let parent = getNode(ancestors(address), state.root);
+      let parentPosition = getPosition(ancestors(address), state.root);
+      let child = parent.children.splice(position, 1)[0];
+      let newParent = getNode(ancestors(ancestors(address)), state.root);
+      newParent.children.splice((parentPosition + 1), 0, child);
       focusNode(child);
       return state;
     }
   }
 }
 
-function editBulletNote(position, content) {
+function editBulletNote(address, content) {
   return {
     type: EDIT_BULLET_NOTE,
-    position,
-    content,
     exec: (state) => {
-      let node = getNode(position.slice(), state.root);
+      let node = getNode(copy(address), state.root);
       node.note = content;
       focusNodeNote(node);
       return state;
@@ -145,43 +151,42 @@ function editBulletNote(position, content) {
   }
 }
 
-function moveBulletAsChild(childPosition, newParentPosition) {
+function moveBulletAsChild(childAddress, newParentAddress) {
   return {
     type: MOVE_BULLET,
-    childPosition,
-    newParentPosition,
     exec: (state) => {
-      let newParent = getNode(newParentPosition.slice(), state.root);
-      let oldParent = getNode(ancestors(childPosition), state.root);
-      let child = oldParent.children.splice(last(childPosition), 1)[0];
+      let newParent = getNode(copy(newParentAddress), state.root);
+      let oldParent = getNode(ancestors(childAddress), state.root);
+      let childPosition = getPosition(childAddress, state.root);
+      let newParentPosition = getPosition(newParentAddress, state.root);
+      let child = oldParent.children.splice(childPosition, 1)[0];
       newParent.children.push(child);
-      if ((childPosition.length === newParentPosition.length) &&
-          (last(newParentPosition) > last(childPosition))) {
-        uncollapseTree(getTree([...ancestors(newParentPosition), last(newParentPosition)-1], state.root));
+      if ((childAddress.length === newParentAddress.length) &&
+          (newParentPosition > childPosition)) {
+        uncollapseTree(getTree([...ancestors(newParentAddress), siblingAbove(newParentAddress, state.root).id], state.root));
         return state;
       }
-      uncollapseTree(getTree(newParentPosition.slice(), state.root));
+      uncollapseTree(getTree(copy(newParentAddress), state.root));
       focusNode(child);
       return state;
     }
   }
 }
 
-function moveBulletAsSibling(childPosition, newSiblingPosition, above) {
+function moveBulletAsSibling(childAddress, newSiblingAddress, above) {
   return {
     type: MOVE_BULLET,
-    childPosition,
-    newSiblingPosition,
-    above,
     exec: (state) => {
-      let newParent = getNode(ancestors(newSiblingPosition), state.root);
-      let oldParent = getNode(ancestors(childPosition), state.root);
-      let child = oldParent.children.splice(last(childPosition), 1)[0];
+      let childPosition = getPosition(copy(childAddress), state.root);
+      let siblingPosition = getPosition(copy(newSiblingAddress), state.root);
+      let newParent = getNode(ancestors(newSiblingAddress), state.root);
+      let oldParent = getNode(ancestors(childAddress), state.root);
+      let child = oldParent.children.splice(childPosition, 1)[0];
       if (above) {
-        newParent.children.splice(last(newSiblingPosition), 0, child);
+        newParent.children.splice(siblingPosition, 0, child);
       }
       else {
-        newParent.children.splice(last(newSiblingPosition)+1, 0, child);
+        newParent.children.splice((siblingPosition + 1), 0, child);
       }
       focusNode(child);
       return state;
@@ -189,39 +194,37 @@ function moveBulletAsSibling(childPosition, newSiblingPosition, above) {
   }
 }
 
-function goDown(position) {
+function goDown(address) {
   return {
     type: GO_DOWN,
-    position,
     exec: (state) => {
-      let node = getNode(position.slice(), state.root);
-      let parent = getNode(ancestors(position), state.root);
+      let node = getNode(copy(address), state.root);
+      let position = getPosition(copy(address), state.root);
+      let parent = getNode(ancestors(address), state.root);
 
       if (!isCollapsed(node)) {
-        let _childBelow = getNode(childBelow(position), state.root);
+        let _childBelow = parent.children[position + 1];
         focusNode(_childBelow);
         return state;
       }
 
-      if(!isLastChild(position, parent)) {
-        let _siblingBelow = getNode(siblingBelow(position), state.root);
-        focusNode(_siblingBelow);
+      if(!isLastChild(address, state.root)) {
+        focusNode(siblingBelow(copy(address), state.root));
         return state;
       }
 
       else {
-        if (isRootChild(position)) {
+        if (isRootChild(address)) {
           return state;
         }
         else {
-          let _position = position.slice();
-          while(_position.length !== 1) {
-            if (!isLastChild(_position, parent)) {
-              focusNode(getNode(siblingBelow(_position), state.root));
+          let _address = copy(address);
+          while(_address.length !== 1) {
+            if (!isLastChild(_address, state.root)) {
+              focusNode(siblingBelow(copy(_address), state.root));
               return state;
             }
-            _position.pop();
-            parent = getNode(ancestors(_position), state.root);
+            _address.pop();
           }
         }
       }
@@ -230,38 +233,36 @@ function goDown(position) {
   }
 }
 
-function goUp(position) {
+function goUp(address) {
   return {
     type: GO_UP,
-    position,
     exec: (state) => {
-      if (isFirstChild(position)) {
-        if (!isRootChild(position)) {
-          focusNode(getNode(ancestors(position), state.root));
+      if (isFirstChild(address, state.root)) {
+        if (!isRootChild(address, state.root)) {
+          focusNode(getNode(ancestors(address), state.root));
           return state;
         }
         else {
           return state;
         }
       }
-      if (!isFirstChild(position)) {
-        let nodeAbove = [...ancestors(position), last(position)-1];
-        let siblingAbove = getNode(nodeAbove, state.root);
-        while (!isCollapsed(siblingAbove)) {
-          siblingAbove = siblingAbove.children[siblingAbove.children.length-1];
+      else {
+        let _siblingAbove = siblingAbove(copy(address), state.root);
+        while (!isCollapsed(_siblingAbove)) {
+          _siblingAbove = _siblingAbove.children[_siblingAbove.children.length - 1];
         }
-        focusNode(siblingAbove);
+        focusNode(_siblingAbove);
         return state;
       }
     }
   }
 }
 
-function toggleCollapse(position) {
+function toggleCollapse(address) {
   return {
     type: TOGGLE_COLLAPSE,
     exec: (state) => {
-      let node = getNode(position.slice(), state.root);
+      let node = getNode(copy(address), state.root);
       node.collapsed = !(node.collapsed);
       if (node.collapsed) {
         collapseNode(node);
@@ -274,23 +275,32 @@ function toggleCollapse(position) {
   }
 }
 
-function getNode(indices, root) {
-  let node = root[indices.shift()];
-  while (indices.length > 0) {
-    node = node.children[indices.shift()];
+function getNode(address, node) {
+  if (address.length === 1 && address[0] === node.id) {
+    return node;
   }
-  return node;
+  address.shift();
+  let _node = node.children.find(n => n.id === address[0]);
+  return getNode(address, _node);
 }
 
-function getTree(indices, root) {
-  let tree = [];
-  let node = root[indices.shift()];
-  tree.push(node)
-  while (indices.length > 0) {
-    node = node.children[indices.shift()];
+function getTree(address, node, tree=[]) {
+  if (address[0] === node.id && address.length === 1) {
     tree.push(node);
+    return tree;
   }
-  return tree;
+  else {
+    tree.push(node)
+    address.shift();
+    let _node = node.children.find(n => n.id === address[0]);
+    return getTree(address, _node, tree);
+  }
+}
+
+function getPosition(address, node) {
+  let parent = getNode(ancestors(address), node);
+  let child = getNode(copy(address), node);
+  return parent.children.indexOf(child);
 }
 
 function placeCaretAtEnd(el) {
@@ -334,20 +344,25 @@ function isCollapsed(node) {
   return ($(`#${node.id}`).find(".children").attr("class").indexOf("show")  === -1);
 }
 
+/*
 function hasChildren(node) {
   return (node.children.length > 0);
 }
+*/
 
-function isFirstChild(position) {
-  return (last(position) === 0);
+function isFirstChild(address, node) {
+  let position = getPosition(copy(address), node);
+  return (position === 0);
 }
 
-function isLastChild(position, parent) {
-  return (last(position) === (parent.children.length - 1));
+function isLastChild(address, node) {
+  let position = getPosition(copy(address), node);
+  let parent = getNode(ancestors(address), node);
+  return (position === (parent.children.length - 1));
 }
 
-function isRootChild(position) {
-  return (position.length === 2);
+function isRootChild(address, node) {
+  return (address.length === (node.focused.length + 1));
 }
 
 function uncollapseNode(node) {
@@ -368,6 +383,7 @@ function uncollapseTree(tree) {
   }, 0);
 }
 
+/*
 function collapseTree(tree) {
   setTimeout(() => {
     tree.map(node => {
@@ -376,25 +392,37 @@ function collapseTree(tree) {
     });
   }, 0);
 }
+*/
 
 function last(array) {
   return array.slice(-1)[0];
 }
 
-function siblingAbove(array) {
-  return [...ancestors(array), last(array)-1];
+function siblingAbove(address, node) {
+  let parent = getNode(ancestors(address), node);
+  let position = getPosition(copy(address), node);
+  return parent.children[position - 1];
 }
 
-function siblingBelow(array) {
-  return [...ancestors(array), last(array)+1];
+function siblingBelow(address, node) {
+  let parent = getNode(ancestors(address), node);
+  let position = getPosition(copy(address), node);
+  return parent.children[position + 1];
 }
 
-function childBelow(array) {
-  return [...array, 0];
+/*
+function childBelow(address, node) {
+  let _node = getNode(copy(address), node);
+  return _node.children[0];
 }
+*/
 
 function ancestors(array) {
   return array.slice(0, -1);
+}
+
+function copy(array) {
+  return array.slice();
 }
 
 function sameArray(array1, array2) {
@@ -414,7 +442,16 @@ function sameArray(array1, array2) {
   return true;
 }
 
-function fixTree(node) {
+function isCorrectFormat(node, root=true) {
+  return node.id !== undefined &&
+         node.content !== undefined &&
+         node.completed !== undefined &&
+         node.children !== undefined &&
+         node.collapsed !== undefined &&
+         node.focused !== undefined;
+}
+
+function fixTree(node, root=true) {
   if (node.id === undefined) {
     node.id = uuidv1();
   }
@@ -430,9 +467,12 @@ function fixTree(node) {
   if (node.collapsed === undefined) {
     node.collapsed = true;
   }
+  if (node.focused === undefined && root) {
+    node.focused = [node.id];
+  }
   if (node.children.length > 0) {
     for (var i = 0; i < node.children.length; i++) {
-      fixTree(node.children[i]);
+      fixTree(node.children[i], false);
     }
   }
 }
@@ -448,9 +488,23 @@ function createNode(uuid=false) {
   }
 }
 
-export { UPDATE_ACTIVE,
+function createRoot(uuid=false) {
+  let identifier = uuid ? uuid : uuidv1();
+  return {
+    id: identifier,
+    content: null,
+    note: null,
+    collapsed: null,
+    completed: null,
+    focused: [identifier],
+    children: []
+  }
+}
+
+export { UPDATE_FOCUSED,
          UPDATE_ROOT,
          ADD_BULLET,
+         ADD_SUB_BULLET,
          EDIT_BULLET,
          DELETE_BULLET,
          INDENT_BULLET,
@@ -460,9 +514,10 @@ export { UPDATE_ACTIVE,
          GO_DOWN,
          GO_UP,
          TOGGLE_COLLAPSE,
-         updateActive,
+         updateFocused,
          updateRoot,
          addBullet,
+         addSubBullet,
          editBullet,
          deleteBullet,
          indentBullet,
@@ -483,5 +538,9 @@ export { UPDATE_ACTIVE,
          uncollapseNode,
          uncollapseTree,
          sameArray,
+         ancestors,
+         copy,
+         isCorrectFormat,
          fixTree,
-         createNode };
+         createNode,
+         createRoot };

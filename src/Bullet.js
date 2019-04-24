@@ -1,9 +1,13 @@
+// VENDOR
+import $ from "jquery";
 import React, { Component } from "react";
 import { Collapse } from "react-bootstrap";
-import "./Bullet.css";
-import * as Actions from "./Actions.js";
-import $ from "jquery";
 import uuidv1 from "uuid/v1";
+
+// APP
+import * as Actions from "./Actions.js";
+import "./Bullet.css";
+
 
 class Bullet extends Component {
 
@@ -40,38 +44,34 @@ class Bullet extends Component {
   }
 
   onKeyDown(e) {
-    console.log("onkeydown main", this.state.content);
     switch (e.keyCode) {
       case 9: // tab
         if (e.shiftKey) { // shift + tab
-          this.props.store.dispatch(Actions.unindentBullet([0, ...this.props.position]));
+          this.props.store.dispatch(Actions.unindentBullet(this.props.address));
           e.preventDefault();
           break;
         }
         else { // tab
-          this.props.store.dispatch(Actions.indentBullet([0, ...this.props.position]));
+          this.props.store.dispatch(Actions.indentBullet(this.props.address));
           e.preventDefault();
           break;
         }
       case 13: // enter
+        e.preventDefault();
         if (e.shiftKey) {
           this.setState({ noteActive: true, noteEmpty: false, noteDeletable: false });
-          console.log("onkeydown shift", this.state.content);
           Actions.focusNodeNote({ id: this.state.id });
-          e.preventDefault();
           break;
         }
         else {
           if (!this.state.collapsed && (this.state.children.length > 0)) {
             let newUUID = uuidv1();
-            this.props.store.dispatch(Actions.addBullet([0, ...this.props.position, -1], newUUID));
-            e.preventDefault();
+            this.props.store.dispatch(Actions.addSubBullet(this.props.address, newUUID));
             break;
           }
           else {
             let newUUID = uuidv1();
-            this.props.store.dispatch(Actions.addBullet([0, ...this.props.position], newUUID));
-            e.preventDefault();
+            this.props.store.dispatch(Actions.addBullet(this.props.address, newUUID));
             break;
           }
         }
@@ -90,34 +90,27 @@ class Bullet extends Component {
     switch (e.keyCode) {
       case 8: // backspace
         if (this.state.deletable) {
-          this.props.store.dispatch(Actions.deleteBullet([0, ...this.props.position]));
+          this.props.store.dispatch(Actions.deleteBullet(this.props.address));
           e.preventDefault();
           break;
         }
         break;
       case 13:
-          console.log("onkeyup", this.state.content);
           break;
-      case 37: // key left
-      break;
       case 38: // key up
         e.preventDefault();
-        this.props.store.dispatch(Actions.goUp([0, ...this.props.position]));
-        break;
-      case 39: // key right
+        this.props.store.dispatch(Actions.goUp(this.props.address));
         break;
       case 40: // key down
         e.preventDefault();
-        this.props.store.dispatch(Actions.goDown([0, ...this.props.position]));
+        this.props.store.dispatch(Actions.goDown(this.props.address));
         break;
       default:
-        this.props.store.dispatch(Actions.editBullet([0, ...this.props.position], this.content.current.innerText));
+        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerText));
         this.setState({ deletable: false });
         break;
     }
   }
-
-
 
   onNoteKeyDown(e) {
     switch(e.keyCode) {
@@ -137,7 +130,7 @@ class Bullet extends Component {
       case 8: // backspace
         if (this.state.noteDeletable) {
           this.setState({ noteEmpty: true, noteActive: false });
-          this.props.store.dispatch(Actions.editBulletNote([0, ...this.props.position], ""));
+          this.props.store.dispatch(Actions.editBulletNote(this.props.address, ""));
           Actions.focusNode({ id: this.state.id });
           e.preventDefault();
           break;
@@ -152,10 +145,10 @@ class Bullet extends Component {
       case 39: // key right
       case 40: // key down
         e.preventDefault();
-        this.props.store.dispatch(Actions.goDown([0, ...this.props.position]));
+        this.props.store.dispatch(Actions.goDown(this.props.address));
         break;
       default:
-        this.props.store.dispatch(Actions.editBulletNote([0, ...this.props.position], this.note.current.innerText));
+        this.props.store.dispatch(Actions.editBulletNote(this.props.address, this.note.current.innerText));
         this.setState({ noteDeletable: false, noteActive: true });
     }
   }
@@ -163,14 +156,13 @@ class Bullet extends Component {
   onNoteFocus(e) {
     e.preventDefault();
     e.stopPropagation();
-    console.log(this.state.content);
     Actions.focusNodeNote({ id: this.state.id });
   }
 
   onNoteBlur(e) {
     if (this.note.current.innerText === "" && this.state.children.length === 0) {
       this.setState({ noteEmpty: true, noteActive: false });
-      this.props.store.dispatch(Actions.editBulletNote([0, ...this.props.position], ""));
+      this.props.store.dispatch(Actions.editBulletNote(this.props.address, ""));
       Actions.focusNode({ id: this.state.id });
     }
   }
@@ -187,8 +179,8 @@ class Bullet extends Component {
       let siblingAbove = (e.clientY < (top + height * 0.5));
 
       if (siblingAbove) {
-        if (!Actions.isRootChild([0, ...this.props.position]) &&
-            Actions.isFirstChild([0, ...this.props.position])) {
+        if (!Actions.isRootChild(Actions.copy(this.props.address), this.props.store.getState().root) &&
+            Actions.isFirstChild(Actions.copy(this.props.address), this.props.store.getState().root)) {
               return;
         }
         this.setState({ siblingCSS: "border-top", siblingAbove });
@@ -214,7 +206,7 @@ class Bullet extends Component {
 
 
   onDragStart(e) {
-    e.dataTransfer.setData("Text", [0, ...this.props.position].toString());
+    e.dataTransfer.setData("Text", this.props.address.toString());
     this.setState({ beingDragged: true });
     this.siblingBorder(false, e);
   }
@@ -274,12 +266,12 @@ class Bullet extends Component {
   onDropChild(e) {
     e.preventDefault();
     e.stopPropagation();
-    let childPosition = e.dataTransfer.getData("Text").split(",").map(index => parseInt(index));
-    let newParentPosition = [0, ...this.props.position];
-    if (Actions.sameArray(childPosition, newParentPosition)) {
+    let childAddress = e.dataTransfer.getData("Text").split(",");
+    let newParentAddress = this.props.address;
+    if (Actions.sameArray(childAddress, newParentAddress)) {
       return;
     }
-    this.props.store.dispatch(Actions.moveBulletAsChild(childPosition, newParentPosition));
+    this.props.store.dispatch(Actions.moveBulletAsChild(childAddress, newParentAddress));
     this.setState({ childBorder: false, siblingBorder: false });
     this.siblingBorder(false, e);
     this.childBorder(false, e);
@@ -289,24 +281,24 @@ class Bullet extends Component {
     e.preventDefault();
     e.stopPropagation();
     if (!this.state.childCSS) {
-      let childPosition = e.dataTransfer.getData("Text").split(",").map(index => parseInt(index));
-      let newSiblingPosition = [0, ...this.props.position];
-      if (Actions.sameArray(childPosition, newSiblingPosition)) {
+      let childAddress = e.dataTransfer.getData("Text").split(",");
+      let newSiblingAddress = this.props.address;
+      if (Actions.sameArray(childAddress, newSiblingAddress)) {
         return;
       }
-      this.props.store.dispatch(Actions.moveBulletAsSibling(childPosition, newSiblingPosition, this.state.siblingAbove));
+      this.props.store.dispatch(Actions.moveBulletAsSibling(childAddress, newSiblingAddress, this.state.siblingAbove));
       this.siblingBorder(false, e);
       this.childBorder(false, e);
     }
   }
 
-  onClick(e) {
-    this.props.store.dispatch(Actions.toggleCollapse([0, ...this.props.position])); // toggles collapse that persists when note is changed/closed
+  toggleCollapse(e) {
+    this.props.store.dispatch(Actions.toggleCollapse(this.props.address)); // toggles collapse that persists when note is changed/closed
     this.setState({ collapsed: !this.state.collapsed }); // toggles collapse in real-time
   }
 
-  setActive(e) {
-    this.props.store.dispatch(Actions.updateActive(this.props.position));
+  setFocused(e) {
+    this.props.store.dispatch(Actions.updateFocused(this.props.address));
   }
 
   componentDidMount() {
@@ -326,7 +318,7 @@ class Bullet extends Component {
                  style={{ left: -12, top: 8 }}>
               { this.state.children.length > 0 &&
                 <button className="expand border-0"
-                        onClick={ this.onClick.bind(this) }
+                        onClick={ this.toggleCollapse.bind(this) }
                         style={{ backgroundColor: "transparent" }}>
                   <svg height="12px"
                        width="12px"
@@ -346,7 +338,7 @@ class Bullet extends Component {
                  onDragStart={ this.onDragStart.bind(this) }
                  onDragEnd={ this.onDragEnd.bind(this) }>
               <button className="bullet border-0"
-                      onClick={ this.setActive.bind(this) }
+                      onClick={ this.setFocused.bind(this) }
                       style={{backgroundColor: "transparent", outline: "0px"}}>
                 <svg height="35px"
                      width="35px"
@@ -396,8 +388,8 @@ class Bullet extends Component {
             </div>
           }
         </div>
-        <div className="note-row pl-2 w-100"
-             style={{ display: (this.state.noteEmpty ? "none" : "block") }}>
+        <div className={ this.state.noteEmpty ? "" : "note-row d-flex flex-row pl-2 w-100" }
+             style={{ display: (this.state.noteEmpty ? "none" : "auto") }}>
           <div className="note-column flex-grow-1 align-self-center pl-5 w-100">
             <div className={ "note w-75 pb-2 " + this.state.childCSS + " " + (this.state.noteActive ? "note-active" : "note-collapsed") }
                  contentEditable="true"
@@ -426,7 +418,7 @@ class Bullet extends Component {
                 { this.state.children.length > 0 &&
                     this.state.children.map((child, index) =>
                       <Bullet key={ child.id }
-                              position={ [...this.props.position, index] }
+                              address={ [...this.props.address, child.id] }
                               store={ this.props.store }
                               self={ child }>
                       </Bullet>

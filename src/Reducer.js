@@ -1,12 +1,15 @@
+// APP
 import * as Actions from "./Actions.js";
 
 function Reducer(state, action) {
   switch(action.type) {
-    case Actions.UPDATE_ACTIVE:
+    case Actions.UPDATE_FOCUSED:
       return action.exec(state);
     case Actions.UPDATE_ROOT:
       return action.exec(state);
     case Actions.ADD_BULLET:
+      return action.exec(state);
+    case Actions.ADD_SUB_BULLET:
       return action.exec(state);
     case Actions.EDIT_BULLET:
       return action.exec(state);
