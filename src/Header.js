@@ -2,6 +2,7 @@
 import React, { Component } from "react";
 
 class Header extends Component {
+  // this shows the title of the current focused bullet along with its note
 
   render() {
     return (this.props.focusedBullet.content == null) ? null : (

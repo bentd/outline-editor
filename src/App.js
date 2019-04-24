@@ -16,13 +16,13 @@ class App extends Component {
 
   constructor(props) {
     super(props);
-    this.key = 1;
-    this.child = Actions.createNode();
-    this.root = Actions.createRoot();
+    this.key = 1; // allows the editor to quickly reload the first bullet with data from a pre-exisiting note that isn't in bullet format such as a letter or note to self
+    this.child = Actions.createNode(); // dummy bullet just in case the user's note isn't in bullet format
+    this.root = Actions.createRoot(); // the root bullet (isn't seen by user) is a javascript object that contains the dummy bullet or any data for the app
     this.root.children.push(this.child);
     let root = this.root;
     this.state = { root };
-    this.initializeStore();
+    this.initializeStore(); // the editor uses a redux store that holds the app data. it updates the apps ui via its component state as well as the note via componentmanager
 
   }
 
@@ -31,14 +31,14 @@ class App extends Component {
   }
 
   initializeStoreCallback() {
-    if (this.unsubscribe) {
+    if (this.unsubscribe) { // if the note is being changed to another, unsubscribe from the previous app redux store
       this.unsubscribe();
     }
-    this.unsubscribe = this.store.subscribe(() => {
+    this.unsubscribe = this.store.subscribe(() => { // if the redux store has been updated, update the app state/ui along with the standardnotes note via componentmanager
       this.setState(this.store.getState());
       if (this.note) {
         let note = this.note;
-        let noteContent = yaml.dump(this.state.root);
+        let noteContent = yaml.dump(this.state.root); // the bullet data is stored in yaml format, this can be seen if the user switches to plain editor view
         this.componentManager.saveItemWithPresave(note, () => {
           note.content.text = noteContent;
           note.content.preview_plain = "---";
@@ -51,37 +51,37 @@ class App extends Component {
   initializeTree(item) {
     this.note = item;
     let noteContent = yaml.load(item.content.text);
-    if (typeof noteContent === "string") {
+    if (typeof noteContent === "string") { // is the user's note not in bullet format? no problem! just add the text to the first bullet
       this.store.dispatch(Actions.editBullet([this.root.id, this.child.id], noteContent));
       this.key += 1;
       this.forceUpdate();
     }
-    else if (noteContent === null) {
+    else if (noteContent === null) { // if the user's note is empty, just use the dummy bullets created in the constructor
       this.store.dispatch(Actions.updateRoot(this.state.root));
       return;
     }
     else {
-      if (Actions.isCorrectFormat(noteContent)) {
+      if (Actions.isCorrectFormat(noteContent)) { // if the user's note is in proper bullet format, load the bullets into the editor
         this.store.dispatch(Actions.updateRoot(noteContent));
       }
-      else {
-        this.store.dispatch(Actions.updateRoot(this.state.root));
+      else { // if not, load the user's note data as a string into the first bullet
+        this.store.dispatch(Actions.editBullet([this.root.id, this.child.id], JSON.stringify(noteContent)));
       }
     }
   }
 
   noteChange(item) {
-    if (!this.note) {
+    if (!this.note) { // is the editor being opened for the first time?
       this.initializeTree(item);
       return;
     }
-    else if (this.note.uuid !== item.uuid) {
+    else if (this.note.uuid !== item.uuid) { // has the user changed to another note?
       this.initializeStore();
       this.initializeStoreCallback();
       this.initializeTree(item);
       return;
     }
-    else {
+    else { // update note property
       this.note = item;
       return;
     }
@@ -89,7 +89,7 @@ class App extends Component {
 
   componentDidMount() {
     let permissions = [{ name: "stream-context-item" }];
-    this.componentManager = new ComponentManager(permissions, () => {});
+    this.componentManager = new ComponentManager(permissions, () => {}); // initialize componentmanager
     this.componentManager.streamContextItem(this.noteChange.bind(this));
     this.initializeStoreCallback();
   }
@@ -97,9 +97,8 @@ class App extends Component {
   render() {
     const { root } = this.state;
     const { focused } = this.state.root;
-    console.log("app.js render", focused, root);
-    const focusedBullet = Actions.getNode(focused.slice(), root);
-    const focusedTree = Actions.getTree(focused.slice(), root);
+    const focusedBullet = Actions.getNode(focused.slice(), root); // the terms focused, focusedBullet, and focused Tree relate to how zoomed in the user is into the bullet tree,
+    const focusedTree = Actions.getTree(focused.slice(), root); // a zoom/focus happens when the user clicks on any bullet icon
     const className = "p-4 w-100 h-100";
     const style = { overflowX: "visible", whiteSpace: "wrap" }
     return (

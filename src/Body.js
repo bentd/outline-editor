@@ -7,6 +7,8 @@ import * as Actions from "./Actions.js";
 import Bullet from "./Bullet.js";
 
 class Body extends Component {
+  // this class shows the focused bullet's children
+  // if the focus bullet has no children, a plus sign is rendered to add one
 
   addChild() {
     let newUUID = uuidv1();

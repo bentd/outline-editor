@@ -37,7 +37,7 @@ function updateRoot(root) {
   }
 }
 
-function addBullet(address, uuid) {
+function addBullet(address, uuid) { // add bullet as a sibling
   return {
     type: ADD_BULLET,
     exec: (state) => {
@@ -49,7 +49,7 @@ function addBullet(address, uuid) {
   }
 }
 
-function addSubBullet(address, uuid) {
+function addSubBullet(address, uuid) { // add bullet as a child
   return {
     type: ADD_SUB_BULLET,
     exec: (state) => {
@@ -265,7 +265,6 @@ function toggleCollapse(address) {
 }
 
 function getNode(address, node) {
-  console.log(address, node);
   if (address.length === 1 && address[0] == node.id) {
     return node;
   }

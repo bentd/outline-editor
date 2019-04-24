@@ -14,21 +14,29 @@ class Bullet extends Component {
   constructor(props) {
     super(props);
 
+    // these refs are used to get the value of each bullets content and note
+    // values which are used to update the redux store
     this.content = React.createRef();
     this.note = React.createRef();
 
     this.state = {
+      // contains the bullet's content, note, completed bool, and collapsed bool data along with its address (an array of the identifiers of it and its parents) all of which can be seen in plain view
       ...this.props.self,
+      // when the user hovers over a bullet with children, the expand icon will appear
       expandVisible: false,
+      // the note properties alter the ui as to determine whether a bullet's note div is shown
       noteEmpty: (this.props.self.note === ""),
       noteActive: false,
+      // this property determines if a backspace should delete the bullet, after each keystroke the deletable property updates
       deletable: (this.props.self.note === "" && this.props.self.content === ""),
+      // the following 6 properties determine if a border is to be shown if a user is dragging a bullet as a sibling or child relative to another
       siblingAbove: false,
       siblingBorder: false,
       siblingCSS: "",
       childBorder: false,
       childAbove: false,
       childCSS: "",
+      // is the bullet being dragged?
       beingDragged: false
     };
   }
@@ -46,24 +54,24 @@ class Bullet extends Component {
   onKeyDown(e) {
     switch (e.keyCode) {
       case 9: // tab
-        if (e.shiftKey) { // shift + tab
+        if (e.shiftKey) { // shift + tab > unindent
           this.props.store.dispatch(Actions.unindentBullet(this.props.address));
           e.preventDefault();
           break;
         }
-        else { // tab
+        else { // tab > INDENT
           this.props.store.dispatch(Actions.indentBullet(this.props.address));
           e.preventDefault();
           break;
         }
       case 13: // enter
         e.preventDefault();
-        if (e.shiftKey) {
+        if (e.shiftKey) { // shift + enter > activate bullet note for editing
           this.setState({ noteActive: true, noteEmpty: false, noteDeletable: false });
           Actions.focusNodeNote({ id: this.state.id });
           break;
         }
-        else {
+        else { // enter > add a bullet as a new child or as a new sibling
           if (!this.state.collapsed && (this.state.children.length > 0)) {
             let newUUID = uuidv1();
             this.props.store.dispatch(Actions.addSubBullet(this.props.address, newUUID));
@@ -76,11 +84,11 @@ class Bullet extends Component {
           }
         }
       case 38: // key up
-        e.preventDefault();
+        e.preventDefault(); // prevents cursor from moving to the beginning of the current bullet before moving up to the above bullet
         break;
       default:
         if (this.content.current.innerText == "" && this.state.children.length === 0) {
-          this.setState({ deletable: true });
+          this.setState({ deletable: true }); // can the bullet be deleted?
         }
         break;
     }
@@ -89,26 +97,24 @@ class Bullet extends Component {
   onKeyUp(e) {
     switch (e.keyCode) {
       case 8: // backspace
-        if (this.state.deletable) {
+        if (this.state.deletable) { // delete bullet
           this.props.store.dispatch(Actions.deleteBullet(this.props.address));
           e.preventDefault();
           break;
         }
-        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerText));
+        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerText)); // edit bullet's content in redux store
         this.setState({ deletable: false });
-        break;        
-      case 13:
-          break;
-      case 38: // key up
+        break;
+      case 38: // key up > go up a bullet
         e.preventDefault();
         this.props.store.dispatch(Actions.goUp(this.props.address));
         break;
-      case 40: // key down
+      case 40: // key down > go down a bullet
         e.preventDefault();
         this.props.store.dispatch(Actions.goDown(this.props.address));
         break;
       default:
-        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerText));
+        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerText)); // edit bullet's content in redux store
         this.setState({ deletable: false });
         break;
     }
@@ -130,7 +136,7 @@ class Bullet extends Component {
   onNoteKeyUp(e) {
     switch(e.keyCode) {
       case 8: // backspace
-        if (this.state.noteDeletable) {
+        if (this.state.noteDeletable) { // make note disappear not necessarily delete
           this.setState({ noteEmpty: true, noteActive: false });
           this.props.store.dispatch(Actions.editBulletNote(this.props.address, ""));
           Actions.focusNode({ id: this.state.id });
@@ -158,11 +164,11 @@ class Bullet extends Component {
   onNoteFocus(e) {
     e.preventDefault();
     e.stopPropagation();
-    Actions.focusNodeNote({ id: this.state.id });
+    Actions.focusNodeNote({ id: this.state.id }); // move cursor to note div
   }
 
   onNoteBlur(e) {
-    if (this.note.current.innerText === "" && this.state.children.length === 0) {
+    if (this.note.current.innerText === "" && this.state.children.length === 0) { // hide note div completely if empty
       this.setState({ noteEmpty: true, noteActive: false });
       this.props.store.dispatch(Actions.editBulletNote(this.props.address, ""));
       Actions.focusNode({ id: this.state.id });
@@ -170,7 +176,7 @@ class Bullet extends Component {
   }
 
   siblingBorder(siblingBorder, e) {
-    if (this.state.childCSS) {
+    if (this.state.childCSS) { // child border always supercedes the sibling border
       this.setState({ siblingCSS: "" });
       return;
     }
@@ -180,7 +186,7 @@ class Bullet extends Component {
       let { top } = bullet.offset();
       let siblingAbove = (e.clientY < (top + height * 0.5));
 
-      if (siblingAbove) {
+      if (siblingAbove) { // disables first non-root bullets from having a bullet dragged above them, the bullet should be dragged as a child to the parent bullet
         if (!Actions.isRootChild(Actions.copy(this.props.address), this.props.store.getState().root) &&
             Actions.isFirstChild(Actions.copy(this.props.address), this.props.store.getState().root)) {
               return;
@@ -208,7 +214,7 @@ class Bullet extends Component {
 
 
   onDragStart(e) {
-    e.dataTransfer.setData("Text", this.props.address.toString());
+    e.dataTransfer.setData("Text", this.props.address.toString()); // transfers the dragged bullets address as a string
     this.setState({ beingDragged: true });
     this.siblingBorder(false, e);
   }
@@ -265,7 +271,7 @@ class Bullet extends Component {
     this.childBorder(false, e);
   }
 
-  onDropChild(e) {
+  onDropChild(e) { // if the bullet is dragged into another bullets content as opposed to the entirety of the bullets area, it is dropped as a child
     e.preventDefault();
     e.stopPropagation();
     let childAddress = e.dataTransfer.getData("Text").split(",");
@@ -279,7 +285,7 @@ class Bullet extends Component {
     this.childBorder(false, e);
   }
 
-  onDropSibling(e) {
+  onDropSibling(e) { // if the bullet is dragged into the entirety of a bullets area as opposed to the bullets content, it is dropped as a sibling
     e.preventDefault();
     e.stopPropagation();
     if (!this.state.childCSS) {
@@ -294,12 +300,12 @@ class Bullet extends Component {
     }
   }
 
-  toggleCollapse(e) {
+  toggleCollapse(e) { // are the bullets children shown?
     this.props.store.dispatch(Actions.toggleCollapse(this.props.address)); // toggles collapse that persists when note is changed/closed
     this.setState({ collapsed: !this.state.collapsed }); // toggles collapse in real-time
   }
 
-  setFocused(e) {
+  setFocused(e) { // the bullet is zoomed in on
     this.props.store.dispatch(Actions.updateFocused(this.props.address));
   }
 
