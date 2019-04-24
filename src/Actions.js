@@ -53,7 +53,7 @@ function addSubBullet(address, uuid) {
   return {
     type: ADD_SUB_BULLET,
     exec: (state) => {
-      let parent = getNode(address, state.root);
+      let parent = getNode(copy(address), state.root);
       parent.children.push(createNode(uuid));
       focusNode({id: uuid});
       return state;
@@ -79,14 +79,15 @@ function deleteBullet(address) {
     exec: (state) => {
       let parent = getNode(ancestors(address), state.root);
       let position = getPosition(copy(address), state.root);
-      if ((isRootChild(address, state.root) && isFirstChild(copy(address), state.root)) ||
+      if ((isRootChild(copy(address), state.root) && isFirstChild(copy(address), state.root)) ||
           (parent.children[position].length > 0) || (parent.children[position].note !== "")) {
         parent.children.splice(position, 1);
         return state;
       }
       if (position > 0) {
+        let _siblingAbove = getNodeAbove(copy(address), state.root);
         parent.children.splice(position, 1);
-        focusNode(siblingAbove(copy(address), state.root));
+        focusNode(_siblingAbove);
         return state;
       }
       else {
@@ -208,13 +209,13 @@ function goDown(address) {
         return state;
       }
 
-      if(!isLastChild(address, state.root)) {
+      if(!isLastChild(copy(address), state.root)) {
         focusNode(siblingBelow(copy(address), state.root));
         return state;
       }
 
       else {
-        if (isRootChild(address)) {
+        if (isRootChild(copy(address), state.root)) {
           return state;
         }
         else {
@@ -237,23 +238,11 @@ function goUp(address) {
   return {
     type: GO_UP,
     exec: (state) => {
-      if (isFirstChild(address, state.root)) {
-        if (!isRootChild(address, state.root)) {
-          focusNode(getNode(ancestors(address), state.root));
-          return state;
-        }
-        else {
-          return state;
-        }
+      let siblingAbove = getNodeAbove(copy(address), state.root);
+      if (siblingAbove) {
+        focusNode(siblingAbove);
       }
-      else {
-        let _siblingAbove = siblingAbove(copy(address), state.root);
-        while (!isCollapsed(_siblingAbove)) {
-          _siblingAbove = _siblingAbove.children[_siblingAbove.children.length - 1];
-        }
-        focusNode(_siblingAbove);
-        return state;
-      }
+      return state;
     }
   }
 }
@@ -276,16 +265,35 @@ function toggleCollapse(address) {
 }
 
 function getNode(address, node) {
-  if (address.length === 1 && address[0] === node.id) {
+  console.log(address, node);
+  if (address.length === 1 && address[0] == node.id) {
     return node;
   }
   address.shift();
-  let _node = node.children.find(n => n.id === address[0]);
-  return getNode(address, _node);
+  let _node = node.children.find(n => (n.id == address[0]));
+  return getNode(copy(address), _node);
+}
+
+function getNodeAbove(address, node) {
+  if (isFirstChild(copy(address), node)) {
+    if (!isRootChild(copy(address), node)) {
+      return getNode(ancestors(address), node);
+    }
+    else {
+      return null;
+    }
+  }
+  else {
+    let _siblingAbove = siblingAbove(copy(address), node);
+    while (!isCollapsed(_siblingAbove)) {
+      _siblingAbove = _siblingAbove.children[_siblingAbove.children.length - 1];
+    }
+    return _siblingAbove;
+  }
 }
 
 function getTree(address, node, tree=[]) {
-  if (address[0] === node.id && address.length === 1) {
+  if (address.length === 1 && address[0] == node.id) {
     tree.push(node);
     return tree;
   }
@@ -293,7 +301,7 @@ function getTree(address, node, tree=[]) {
     tree.push(node)
     address.shift();
     let _node = node.children.find(n => n.id === address[0]);
-    return getTree(address, _node, tree);
+    return getTree(copy(address), _node, tree);
   }
 }
 
@@ -451,6 +459,7 @@ function isCorrectFormat(node, root=true) {
          node.focused !== undefined;
 }
 
+
 function fixTree(node, root=true) {
   if (node.id === undefined) {
     node.id = uuidv1();
@@ -467,7 +476,7 @@ function fixTree(node, root=true) {
   if (node.collapsed === undefined) {
     node.collapsed = true;
   }
-  if (node.focused === undefined && root) {
+  if ((node.focused === undefined || node.focused == [node.id]) && root) {
     node.focused = [node.id];
   }
   if (node.children.length > 0) {
@@ -476,6 +485,7 @@ function fixTree(node, root=true) {
     }
   }
 }
+
 
 function createNode(uuid=false) {
   return {

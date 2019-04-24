@@ -97,6 +97,7 @@ class App extends Component {
   render() {
     const { root } = this.state;
     const { focused } = this.state.root;
+    console.log("app.js render", focused, root);
     const focusedBullet = Actions.getNode(focused.slice(), root);
     const focusedTree = Actions.getTree(focused.slice(), root);
     const className = "p-4 w-100 h-100";

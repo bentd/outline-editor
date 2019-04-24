@@ -79,7 +79,7 @@ class Bullet extends Component {
         e.preventDefault();
         break;
       default:
-        if (this.content.current.innerText === "" && this.state.children.length === 0) {
+        if (this.content.current.innerText == "" && this.state.children.length === 0) {
           this.setState({ deletable: true });
         }
         break;
@@ -94,7 +94,9 @@ class Bullet extends Component {
           e.preventDefault();
           break;
         }
-        break;
+        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerText));
+        this.setState({ deletable: false });
+        break;        
       case 13:
           break;
       case 38: // key up
