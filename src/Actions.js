@@ -112,6 +112,7 @@ function indentBullet(address) {
       let newParent = siblingAbove(copy(address), state.root);
       let child = oldParent.children.splice(position, 1)[0];
       newParent.children.push(child);
+      newParent.collapsed = false;
       tree.push(newParent);
       for (let i in tree) {
         if (tree[i].collapsed !== null) {
@@ -543,6 +544,7 @@ export { UPDATE_FOCUSED,
          goDown,
          focusNode,
          focusNodeNote,
+         placeCaretAtEnd,
          isFirstChild,
          isRootChild,
          isCollapsed,

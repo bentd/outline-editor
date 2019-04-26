@@ -104,7 +104,9 @@ class App extends Component {
     return (
       <div key={ this.key } id="bullet-editor" className={ className } style={ style }>
         <Navbar store={ this.store } focusedTree={ focusedTree } focused={ focused }></Navbar>
-        <Header focusedBullet={ focusedBullet }></Header>
+        { focused.length !== 1 &&
+        <Header focusedBullet={ focusedBullet } address={ focused } store={ this.store }></Header>
+        }
         <Body focusedBullet={ focusedBullet } focused={ focused } store={ this.store }></Body>
       </div>
     );

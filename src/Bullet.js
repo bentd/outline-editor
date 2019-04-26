@@ -311,21 +311,16 @@ class Bullet extends Component {
   }
 
   componentDidMount() {
-  }
-
-  getHeight() {
-    let row = $(`div#${this.state.id}`).find(".content-row");
-    let bullet = $(`#${this.state.id}`).find(".content-column-icons");
-    console.log(row);
-    console.log(bullet.height());
-    let height = row.height();
-    let str = height.toString();
-    return str;
+    this.numChildren = this.state.children.length;
+    this.collapseInterval = setInterval(() => {
+      if (this.state.children.length !== this.numChildren) {
+        this.toggleCollapse();
+        this.numChildren = this.state.children.length;
+      }
+    }, 10);
   }
 
   render() {
-    //let height = this.getHeight();
-    //console.log(height);
     return (
       <div className={ "bullet container-fluid w-100 p-0 m-0 " + this.state.siblingCSS }
            id={ this.state.id }
