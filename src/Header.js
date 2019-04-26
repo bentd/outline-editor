@@ -47,6 +47,12 @@ class Header extends Component {
     });
   }
 
+  componentWillUpdate() {
+    if (this.props.focusedBullet.children.length === 0) {
+      this.content.current.focus();
+    }
+  }
+
   render() {
     return (this.props.focusedBullet.content == null) ? null : (
       <div className="w-100 h-100 pl-3">

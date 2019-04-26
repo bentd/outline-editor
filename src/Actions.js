@@ -81,9 +81,8 @@ function deleteBullet(address) {
     exec: (state) => {
       let parent = getNode(ancestors(address), state.root);
       let position = getPosition(copy(address), state.root);
-      if ((isRootChild(copy(address), state.root) && isFirstChild(copy(address), state.root)) ||
-          (parent.children[position].length > 0) || (parent.children[position].note !== "")) {
-        parent.children.splice(position, 1);
+      let node = getNode(copy(address), state.root);
+      if ((node.children.length > 0) || (node.note !== "")) {
         return state;
       }
       if (position > 0) {
@@ -94,7 +93,9 @@ function deleteBullet(address) {
       }
       else {
         parent.children.splice(position, 1);
-        focusNode(parent);
+        if (parent.children.length > 0) {
+          focusNode(parent);
+        }
         return state;
       }
     }
@@ -388,6 +389,10 @@ function isRootChild(address, node) {
   return (address.length === (node.focused.length + 1));
 }
 
+function isRootRootChild(address) {
+  return (address.length === 2);
+}
+
 function uncollapseNode(node) {
   setTimeout(() => {
     $(`#${node.id}`).children(".collapse").addClass("show");
@@ -561,6 +566,7 @@ export { UPDATE_FOCUSED,
          placeCaretAtEnd,
          isFirstChild,
          isRootChild,
+         isRootRootChild,
          isCollapsed,
          uncollapseNode,
          uncollapseTree,

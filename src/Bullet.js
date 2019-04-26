@@ -323,7 +323,9 @@ class Bullet extends Component {
   }
 
   render() {
-    const mobile = this.props.store.getState().mobile;
+    const state = this.props.store.getState();
+    const mobile = state.mobile;
+    const isRootRoot = Actions.isRootRootChild(Actions.copy(this.props.address));
     return (
       <div className={ "bullet container-fluid w-100 p-0 m-0 " + this.state.siblingCSS }
            id={ this.state.id }
@@ -382,14 +384,14 @@ class Bullet extends Component {
               <button className="bullet border-0"
                       onClick={ this.setFocused.bind(this) }
                       style={{backgroundColor: "transparent", outline: "0px"}}>
-                <svg height="35px"
-                     width="35px"
+                <svg height={ isRootRoot ? "35px" : "20px" }
+                     width={ isRootRoot ? "35px" : "20px" }
                      viewBox="0 0 100 100">
                   <circle cx="50%"
                           cy="50%"
                           r="25"
                           stroke="lightgrey"
-                          strokeWidth="25"
+                          strokeWidth={ isRootRoot ? "25" : "0" }
                           fill="dimgrey" />
                 </svg>
               </button>

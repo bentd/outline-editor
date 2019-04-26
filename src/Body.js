@@ -1,4 +1,5 @@
 // VENDOR
+import $ from "jquery";
 import React, { Component } from "react";
 import uuidv1 from "uuid/v1";
 
