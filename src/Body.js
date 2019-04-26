@@ -27,7 +27,7 @@ class Body extends Component {
     }
     if (this.props.focusedBullet.children.length === 0) {
       return (
-        <div id="focused-bullet-children">
+        <div id="focused-bullet-children" className="ml-2">
           <button style={{ background: "transparent", outline: 0, border: 0 }} onClick={ this.addChild.bind(this) }>+</button>
         </div>
       )

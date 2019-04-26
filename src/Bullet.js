@@ -301,7 +301,7 @@ class Bullet extends Component {
     }
   }
 
-  toggleCollapse(e) { // are the bullets children shown?
+  toggleCollapse(e, uncollapse=null) { // are the bullets children shown?
     this.props.store.dispatch(Actions.toggleCollapse(this.props.address)); // toggles collapse that persists when note is changed/closed
     this.setState({ collapsed: !this.state.collapsed }); // toggles collapse in real-time
   }
@@ -312,15 +312,18 @@ class Bullet extends Component {
 
   componentDidMount() {
     this.numChildren = this.state.children.length;
-    this.collapseInterval = setInterval(() => {
-      if (this.state.children.length !== this.numChildren) {
-        this.toggleCollapse();
-        this.numChildren = this.state.children.length;
-      }
-    }, 10);
+  }
+
+  componentWillUpdate() {
+    if (this.state.children.length === (this.numChildren + 1)) {
+      this.props.store.dispatch(Actions.unCollapse(this.props.address)); //  uncollapses bullet that persists when note is changed/closed
+      this.setState({ collapsed: false }); // toggles collapse in real-time
+      this.numChildren = this.state.children.length;
+    }
   }
 
   render() {
+    const mobile = this.props.store.getState().mobile;
     return (
       <div className={ "bullet container-fluid w-100 p-0 m-0 " + this.state.siblingCSS }
            id={ this.state.id }
@@ -330,6 +333,28 @@ class Bullet extends Component {
            onDragLeave={ this.onDragSiblingLeave.bind(this) }>
         <div className="content-row d-flex flex-row w-100" onMouseEnter={ this.onMouseEnter.bind(this) } onMouseLeave={ this.onMouseLeave.bind(this) }>
           <div className="content-column-icons align-self-start position-relative">
+            { mobile &&
+              <div className="expand-icon-container position-absolute"
+                   style={{ left: -12, top: 8 }}>
+                { this.state.children.length > 0 &&
+                  <button className="expand border-0"
+                          onClick={ this.toggleCollapse.bind(this) }
+                          style={{ backgroundColor: "transparent" }}>
+                    <svg height="12px"
+                         width="12px"
+                         viewBox="0 0 100 100">
+                      { this.state.children.length > 0 && this.state.collapsed &&
+                          <polygon points="0,0 0,100 100,50" fill="dimgrey"/>
+                      }
+                      { this.state.children.length > 0 && !(this.state.collapsed) &&
+                          <polygon points="0,0 50,100 100,0" fill="dimgrey"/>
+                      }
+                    </svg>
+                  </button>
+                }
+              </div>
+            }
+            { !mobile &&
             <div className="expand-icon-container position-absolute"
                  style={{ left: -12, top: 8 }}>
               { this.state.children.length > 0 &&
@@ -349,6 +374,7 @@ class Bullet extends Component {
                 </button>
               }
             </div>
+          }
             <div className="bullet-icon-container p-1"
                  draggable={ true }
                  onDragStart={ this.onDragStart.bind(this) }

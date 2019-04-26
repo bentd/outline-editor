@@ -21,7 +21,7 @@ class App extends Component {
     this.root = Actions.createRoot(); // the root bullet (isn't seen by user) is a javascript object that contains the dummy bullet or any data for the app
     this.root.children.push(this.child);
     let root = this.root;
-    this.state = { root };
+    this.state = { root, mobile: (window.innerWidth < 500) };
     this.initializeStore(); // the editor uses a redux store that holds the app data. it updates the apps ui via its component state as well as the note via componentmanager
 
   }

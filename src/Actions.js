@@ -254,6 +254,7 @@ function toggleCollapse(address) {
   return {
     type: TOGGLE_COLLAPSE,
     exec: (state) => {
+      console.log(address);
       let node = getNode(copy(address), state.root);
       node.collapsed = !(node.collapsed);
       if (node.collapsed) {
@@ -267,13 +268,25 @@ function toggleCollapse(address) {
   }
 }
 
+function unCollapse(address) {
+  return {
+    type: TOGGLE_COLLAPSE,
+    exec: (state) => {
+      let node = getNode(copy(address), state.root);
+      node.collapsed = false;
+      uncollapseNode(node);
+      return state;
+    }
+  }
+}
+
 function getNode(address, node) {
   if (address.length === 1 && address[0] == node.id) {
     return node;
   }
   address.shift();
   let _node = node.children.find(n => (n.id == address[0]));
-  return getNode(copy(address), _node);
+  return getNode(address, _node);
 }
 
 function getNodeAbove(address, node) {
@@ -538,6 +551,7 @@ export { UPDATE_FOCUSED,
          moveBulletAsChild,
          moveBulletAsSibling,
          toggleCollapse,
+         unCollapse,
          getNode,
          getTree,
          goUp,
