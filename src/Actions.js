@@ -250,7 +250,6 @@ function toggleCollapse(address) {
   return {
     type: TOGGLE_COLLAPSE,
     exec: (state) => {
-      console.log(address);
       let node = getNode(copy(address), state.root);
       node.collapsed = !(node.collapsed);
       if (node.collapsed) {

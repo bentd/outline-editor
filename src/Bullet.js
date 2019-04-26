@@ -179,7 +179,6 @@ class Bullet extends Component {
     if (siblingBorder) {
       let bullet = $(`#${this.state.id}`).find(".content-column-icons");
       let height = bullet.height();
-      console.log(height);
       let { top } = bullet.offset();
       let siblingAbove = (e.clientY < (top + height * 0.5));
 
