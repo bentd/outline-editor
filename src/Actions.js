@@ -61,13 +61,15 @@ function addSubBullet(address, uuid) { // add bullet as a child
   }
 }
 
-function editBullet(address, content) {
+function editBullet(address, content, focus=false) {
   return {
     type: EDIT_BULLET,
     exec: (state) => {
       let node = getNode(copy(address), state.root);
       node.content = content;
-      focusNode(node);
+      if (focus) {
+        focusNode(node);
+      }
       return state;
     }
   }
@@ -204,7 +206,7 @@ function goDown(address) {
       let parent = getNode(ancestors(address), state.root);
 
       if (!isCollapsed(node)) {
-        let _childBelow = parent.children[position + 1];
+        let _childBelow = node.children[0];
         focusNode(_childBelow);
         return state;
       }

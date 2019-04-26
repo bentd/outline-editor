@@ -87,7 +87,7 @@ class Bullet extends Component {
         e.preventDefault(); // prevents cursor from moving to the beginning of the current bullet before moving up to the above bullet
         break;
       default:
-        if (this.content.current.innerText == "" && this.state.children.length === 0) {
+        if (["\n", ""].indexOf(this.content.current.innerText) !== -1 && this.state.children.length === 0) {
           this.setState({ deletable: true }); // can the bullet be deleted?
         }
         break;
@@ -183,6 +183,7 @@ class Bullet extends Component {
     if (siblingBorder) {
       let bullet = $(`#${this.state.id}`).find(".content-column-icons");
       let height = bullet.height();
+      console.log(height);
       let { top } = bullet.offset();
       let siblingAbove = (e.clientY < (top + height * 0.5));
 
@@ -280,7 +281,7 @@ class Bullet extends Component {
       return;
     }
     this.props.store.dispatch(Actions.moveBulletAsChild(childAddress, newParentAddress));
-    this.setState({ childBorder: false, siblingBorder: false });
+    this.setState({ childBorder: false, siblingBorder: false, collapsed: false });
     this.siblingBorder(false, e);
     this.childBorder(false, e);
   }
@@ -312,7 +313,19 @@ class Bullet extends Component {
   componentDidMount() {
   }
 
+  getHeight() {
+    let row = $(`div#${this.state.id}`).find(".content-row");
+    let bullet = $(`#${this.state.id}`).find(".content-column-icons");
+    console.log(row);
+    console.log(bullet.height());
+    let height = row.height();
+    let str = height.toString();
+    return str;
+  }
+
   render() {
+    //let height = this.getHeight();
+    //console.log(height);
     return (
       <div className={ "bullet container-fluid w-100 p-0 m-0 " + this.state.siblingCSS }
            id={ this.state.id }
@@ -321,7 +334,7 @@ class Bullet extends Component {
            onDragOver={ this.onDragSiblingOver.bind(this) }
            onDragLeave={ this.onDragSiblingLeave.bind(this) }>
         <div className="content-row d-flex flex-row w-100" onMouseEnter={ this.onMouseEnter.bind(this) } onMouseLeave={ this.onMouseLeave.bind(this) }>
-          <div className="content-column-icons align-self-center position-relative">
+          <div className="content-column-icons align-self-start position-relative">
             <div className="expand-icon-container position-absolute"
                  style={{ left: -12, top: 8 }}>
               { this.state.children.length > 0 &&
@@ -361,40 +374,21 @@ class Bullet extends Component {
               </button>
             </div>
           </div>
-          { this.state.noteEmpty &&
-            <div className={ "content-column-text flex-grow-1 align-self-center " + this.state.childCSS }
-                 onDragEnter={ this.onDragChildEnter.bind(this) }
-                 onDragOver={ this.onDragChildOver.bind(this) }
-                 onDragLeave={ this.onDragChildLeave.bind(this) }
-                 onDrop={ this.onDropChild.bind(this) }>
-              <div className="content w-100"
-                   contentEditable="true"
-                   suppressContentEditableWarning="true"
-                   ref={ this.content }
-                   style={{ outline: "0px solid transparent" }}
-                   onKeyDown={ this.onKeyDown.bind(this) }
-                   onKeyUp={ this.onKeyUp.bind(this) }>
-                { this.state.content }
-              </div>
+          <div className={ "content-column-text flex-grow-1 align-self-start h-100 pt-2 position-relative " + (this.state.noteEmpty ? this.state.childCSS : "") }
+               onDragEnter={ this.onDragChildEnter.bind(this) }
+               onDragOver={ this.onDragChildOver.bind(this) }
+               onDragLeave={ this.onDragChildLeave.bind(this) }
+               onDrop={ this.onDropChild.bind(this) }>
+            <div className={ "content " + (this.state.noteEmpty ? "w-100" : "") }
+                 contentEditable="true"
+                 suppressContentEditableWarning="true"
+                 ref={ this.content }
+                 style={{ outline: "0px solid transparent", minHeight: "1em", wordWrap: "break-word" }}
+                 onKeyDown={ this.onKeyDown.bind(this) }
+                 onKeyUp={ this.onKeyUp.bind(this) }>
+              { this.state.content }
             </div>
-          }
-          { !this.state.noteEmpty &&
-            <div className={ "content-column-text flex-grow-1 align-self-center" }
-                 onDragEnter={ this.onDragChildEnter.bind(this) }
-                 onDragOver={ this.onDragChildOver.bind(this) }
-                 onDragLeave={ this.onDragChildLeave.bind(this) }
-                 onDrop={ this.onDropChild.bind(this) }>
-              <div className="content"
-                   contentEditable="true"
-                   suppressContentEditableWarning="true"
-                   ref={ this.content }
-                   style={{ outline: "0px solid transparent" }}
-                   onKeyDown={ this.onKeyDown.bind(this) }
-                   onKeyUp={ this.onKeyUp.bind(this) }>
-                { this.state.content }
-              </div>
-            </div>
-          }
+          </div>
         </div>
         <div className={ this.state.noteEmpty ? "" : "note-row d-flex flex-row pl-2 w-100" }
              style={{ display: (this.state.noteEmpty ? "none" : "auto") }}>
