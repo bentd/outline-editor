@@ -392,12 +392,12 @@ class Bullet extends Component {
               <button className="bullet border-0"
                       onClick={ this.setFocused.bind(this) }
                       style={{backgroundColor: "transparent", outline: "0px"}}>
-                <svg height={ isRootRoot ? "35px" : "20px" }
-                     width={ isRootRoot ? "35px" : "20px" }
+                <svg height="35px"
+                     width="35px"
                      viewBox="0 0 100 100">
                   <circle cx="50%"
                           cy="50%"
-                          r="25"
+                          r={ isRootRoot ? "25" : "12.5" }
                           stroke="lightgrey"
                           strokeWidth={ isRootRoot ? "25" : "0" }
                           fill="dimgrey" />

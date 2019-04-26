@@ -166,11 +166,6 @@ function moveBulletAsChild(childAddress, newParentAddress) {
       let newParentPosition = getPosition(newParentAddress, state.root);
       let child = oldParent.children.splice(childPosition, 1)[0];
       newParent.children.push(child);
-      if ((childAddress.length === newParentAddress.length) &&
-          (newParentPosition > childPosition)) {
-        uncollapseTree(getTree([...ancestors(newParentAddress), siblingAbove(newParentAddress, state.root).id], state.root));
-        return state;
-      }
       uncollapseTree(getTree(copy(newParentAddress), state.root));
       focusNode(child);
       return state;
