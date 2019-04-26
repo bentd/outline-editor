@@ -176,10 +176,6 @@ class Bullet extends Component {
   }
 
   siblingBorder(siblingBorder, e) {
-    if (this.state.childCSS) { // child border always supercedes the sibling border
-      this.setState({ siblingCSS: "" });
-      return;
-    }
     if (siblingBorder) {
       let bullet = $(`#${this.state.id}`).find(".content-column-icons");
       let height = bullet.height();
@@ -187,11 +183,7 @@ class Bullet extends Component {
       let { top } = bullet.offset();
       let siblingAbove = (e.clientY < (top + height * 0.5));
 
-      if (siblingAbove) { // disables first non-root bullets from having a bullet dragged above them, the bullet should be dragged as a child to the parent bullet
-        if (!Actions.isRootChild(Actions.copy(this.props.address), this.props.store.getState().root) &&
-            Actions.isFirstChild(Actions.copy(this.props.address), this.props.store.getState().root)) {
-              return;
-        }
+      if (siblingAbove) {
         this.setState({ siblingCSS: "border-top", siblingAbove });
       }
       else {
@@ -205,7 +197,7 @@ class Bullet extends Component {
 
 
   childBorder(childBorder, e) {
-    if (childBorder) {
+    if (childBorder && !(this.state.siblingCSS)) { // sibling border supercedes child border
       this.setState({ childCSS: "border-bottom" });
     }
     else {
@@ -254,6 +246,13 @@ class Bullet extends Component {
   onDragChildEnter(e) {
     e.preventDefault();
     e.stopPropagation();
+    if (this.state.beingDragged) {
+      this.childBorder(false, e);
+      return;
+    }
+    if (!this.state.collapsed) { // if uncollapsed only allow drops among sub bullet siblings
+      return;
+    }
     this.setState({ childBorder: true });
     this.childBorder(true, e);
   }
@@ -261,6 +260,13 @@ class Bullet extends Component {
   onDragChildOver(e) {
     e.preventDefault();
     e.stopPropagation();
+    if (this.state.beingDragged) {
+      this.childBorder(false, e);
+      return;
+    }
+    if (!this.state.collapsed) { // if uncollapsed only allow drops among sub bullet siblings
+      return;
+    }
     this.setState({ childBorder: true });
     this.childBorder(true, e);
   }
@@ -275,21 +281,23 @@ class Bullet extends Component {
   onDropChild(e) { // if the bullet is dragged into another bullets content as opposed to the entirety of the bullets area, it is dropped as a child
     e.preventDefault();
     e.stopPropagation();
-    let childAddress = e.dataTransfer.getData("Text").split(",");
-    let newParentAddress = this.props.address;
-    if (Actions.sameArray(childAddress, newParentAddress)) {
-      return;
+    if (!this.state.siblingBorder) {
+      let childAddress = e.dataTransfer.getData("Text").split(",");
+      let newParentAddress = this.props.address;
+      if (Actions.sameArray(childAddress, newParentAddress)) {
+        return;
+      }
+      this.props.store.dispatch(Actions.moveBulletAsChild(childAddress, newParentAddress));
+      this.setState({ childBorder: false, siblingBorder: false, collapsed: false });
+      this.siblingBorder(false, e);
+      this.childBorder(false, e);
     }
-    this.props.store.dispatch(Actions.moveBulletAsChild(childAddress, newParentAddress));
-    this.setState({ childBorder: false, siblingBorder: false, collapsed: false });
-    this.siblingBorder(false, e);
-    this.childBorder(false, e);
   }
 
   onDropSibling(e) { // if the bullet is dragged into the entirety of a bullets area as opposed to the bullets content, it is dropped as a sibling
     e.preventDefault();
     e.stopPropagation();
-    if (!this.state.childCSS) {
+    if (this.state.siblingCSS || !this.state.childCSS) {
       let childAddress = e.dataTransfer.getData("Text").split(",");
       let newSiblingAddress = this.props.address;
       if (Actions.sameArray(childAddress, newSiblingAddress)) {
