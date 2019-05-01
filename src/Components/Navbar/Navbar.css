@@ -1,0 +1,9 @@
+.nav {
+  border-bottom: 0.5px solid lightgrey;
+}
+
+.nav-link {
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+}
