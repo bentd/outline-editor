@@ -4,3 +4,7 @@
   outline: 0;
   border: 0;
 }
+
+.add-button:focus {
+  outline: 0 !important;
+}
