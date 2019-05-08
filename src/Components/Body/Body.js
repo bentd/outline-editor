@@ -12,8 +12,7 @@ class Body extends Component {
   // if the focus bullet has no children, a plus sign is rendered to add one
 
   addChild() {
-    let newUUID = uuidv1();
-    this.props.store.dispatch(Actions.addSubBullet(this.props.focused, newUUID));
+    this.props.store.dispatch(Actions.addSubBullet(this.props.focused));
   }
 
   render() {

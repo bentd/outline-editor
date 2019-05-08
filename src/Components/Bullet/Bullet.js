@@ -7,7 +7,7 @@ import uuidv1 from "uuid/v1";
 // APP
 import "./Bullet.css";
 import * as Actions from "../../Actions/Actions.js";
-import { KEY_BACKSPACE, KEY_TAB, KEY_ENTER, KEY_UP, KEY_DOWN } from "../../Constants/Constants.js";
+import { KEY_BACKSPACE, KEY_TAB, KEY_ENTER, KEY_UP, KEY_DOWN, KEY_U, CLOSING_U_TAG_LENGTH, OPENING_U_TAG_LENGTH } from "../../Constants/Constants.js";
 
 
 class Bullet extends Component {
@@ -74,21 +74,45 @@ class Bullet extends Component {
         }
         else { // enter > add a bullet as a new child or as a new sibling
           if (!this.state.collapsed && (this.state.children.length > 0)) {
-            let newUUID = uuidv1();
-            this.props.store.dispatch(Actions.addSubBullet(this.props.address, newUUID));
+            this.props.store.dispatch(Actions.addSubBullet(this.props.address));
             break;
           }
           else {
-            let newUUID = uuidv1();
-            this.props.store.dispatch(Actions.addBullet(this.props.address, newUUID));
+            this.props.store.dispatch(Actions.addBullet(this.props.address));
             break;
           }
         }
       case KEY_UP:
-        e.preventDefault(); // prevents cursor from moving to the beginning of the current bullet before moving up to the above bullet
+      case KEY_DOWN:
+        e.preventDefault(); // prevents cursor from moving to the beginning of the current bullet before moving up or down to the next bullet
         break;
+      case KEY_U:
+        console.log();
+        console.log("pressed u");
+        console.log(e.nativeEvent);
+        if (e.nativeEvent.metaKey) {
+          e.preventDefault();
+          let selection = window.getSelection();
+          let text = selection.toString();
+          console.log(text);
+          let html = this.content.current.innerHTML;
+          let textIndex = html.indexOf(text);
+          console.log(html);
+          let newHTML;
+          if (html.slice((textIndex - OPENING_U_TAG_LENGTH), textIndex) === "<u>" &&
+              html.slice((textIndex + text.length), (textIndex + text.length + CLOSING_U_TAG_LENGTH)) === "</u>") {
+            newHTML = html.replace(`<u>${ text }</u>`, text);
+          }
+          else {
+            newHTML = html.replace(text, `<u>${ text }</u>`);
+          }
+          console.log(newHTML);
+          this.props.store.dispatch(Actions.editBullet(this.props.address, newHTML));
+          this.setState({ content: newHTML });
+          break;
+        }
       default:
-        if (["\n", ""].indexOf(this.content.current.innerText) !== -1 && this.state.children.length === 0) {
+        if (["\n", ""].indexOf(this.content.current.innerHTML) !== -1 && this.state.children.length === 0) {
           this.setState({ deletable: true }); // can the bullet be deleted?
         }
         break;
@@ -96,6 +120,7 @@ class Bullet extends Component {
   }
 
   onKeyUp(e) {
+
     switch (e.keyCode) {
       case KEY_BACKSPACE:
         if (this.state.deletable) { // delete bullet
@@ -103,7 +128,7 @@ class Bullet extends Component {
           e.preventDefault();
           break;
         }
-        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerText)); // edit bullet's content in redux store
+        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerHTML)); // edit bullet's content in redux store
         this.setState({ deletable: false });
         break;
       case KEY_UP: // go up a bullet
@@ -114,8 +139,12 @@ class Bullet extends Component {
         e.preventDefault();
         this.props.store.dispatch(Actions.goDown(this.props.address));
         break;
+      case KEY_U:
+        if (e.nativeEvent.metaKey) {
+          break;
+        }
       default:
-        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerText)); // edit bullet's content in redux store
+        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerHTML)); // edit bullet's content in redux store
         this.setState({ deletable: false });
         break;
     }
@@ -331,7 +360,7 @@ class Bullet extends Component {
   render() {
     const state = this.props.store.getState();
     const mobile = state.mobile;
-    const isRootRoot = Actions.isRootRootChild(Actions.copy(this.props.address));
+    const hasChildren = (this.state.children.length > 0);
     return (
       <div className={ "bullet container-fluid w-100 p-0 m-0 " + this.state.siblingCSS }
            id={ this.state.id }
@@ -390,9 +419,9 @@ class Bullet extends Component {
                      viewBox="0 0 100 100">
                   <circle cx="50%"
                           cy="50%"
-                          r={ isRootRoot ? "25" : "12.5" }
+                          r={ hasChildren ? "25" : "12.5" }
                           stroke="lightgrey"
-                          strokeWidth={ isRootRoot ? "25" : "0" }
+                          strokeWidth={ hasChildren ? "25" : "0" }
                           fill="dimgrey" />
                 </svg>
               </button>
@@ -408,8 +437,8 @@ class Bullet extends Component {
                  suppressContentEditableWarning="true"
                  ref={ this.content }
                  onKeyDown={ this.onKeyDown.bind(this) }
-                 onKeyUp={ this.onKeyUp.bind(this) }>
-              { this.state.content }
+                 onKeyUp={ this.onKeyUp.bind(this) }
+                 dangerouslySetInnerHTML={{ __html: this.state.content }}>
             </div>
           </div>
         </div>

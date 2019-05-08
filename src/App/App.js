@@ -17,9 +17,7 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.key = 1; // allows the editor to quickly reload the first bullet with data from a pre-exisiting note that isn't in bullet format such as a letter or note to self
-    this.child = Actions.createNode(); // dummy bullet just in case the user's note isn't in bullet format
-    this.root = Actions.createRoot(); // the root bullet (isn't seen by user) is a javascript object that contains the dummy bullet or any data for the app
-    this.root.children.push(this.child);
+    this.root = Actions.createRoot(); // the root bullet (isn't seen by user) is a javascript object that contains the initial bullet or any data for the app
     let root = this.root;
     this.state = { root, mobile: (window.innerWidth < 500) };
     this.initializeStore(); // the editor uses a redux store that holds the app data. it updates the apps ui via its component state as well as the note via componentmanager
@@ -51,22 +49,22 @@ class App extends Component {
   initializeTree(item) {
     this.note = item;
     let noteContent = yaml.load(item.content.text);
-    if (typeof noteContent === "string") { // is the user's note not in bullet format? no problem! just add the text to the first bullet
-      this.store.dispatch(Actions.editBullet([this.root.id, this.child.id], noteContent));
-      this.key += 1;
-      this.forceUpdate();
-    }
-    else if (noteContent === null) { // if the user's note is empty, just use the dummy bullets created in the constructor
-      this.store.dispatch(Actions.updateRoot(this.state.root));
-      return;
-    }
-    else {
-      if (Actions.isCorrectFormat(noteContent)) { // if the user's note is in proper bullet format, load the bullets into the editor
-        this.store.dispatch(Actions.updateRoot(noteContent));
-      }
-      else { // if not, load the user's note data as a string into the first bullet
-        this.store.dispatch(Actions.editBullet([this.root.id, this.child.id], JSON.stringify(noteContent)));
-      }
+    switch (typeof noteContent) {
+      case "string": // is the user's note not in bullet format? no problem! just add the text to the first bullet
+        this.store.dispatch(Actions.editBullet([this.state.root.id, this.state.root.children[0].id], noteContent));
+        this.key += 1;
+        this.forceUpdate();
+        break;
+      case null: // if the user's note is empty, just use the dummy bullets created in the constructor
+        this.store.dispatch(Actions.updateRoot(this.state.root));
+        break;
+      default:
+        if (Actions.isCorrectFormat(noteContent)) { // if the user's note is in proper bullet format, load the bullets into the editor
+          this.store.dispatch(Actions.updateRoot(noteContent));
+        }
+        else { // if not, load the user's note data as a string into the first bullet
+          this.store.dispatch(Actions.editBullet([this.state.root.id, this.state.root.children[0].id], JSON.stringify(noteContent)));
+        }
     }
   }
 

@@ -37,25 +37,29 @@ function updateRoot(root) {
   }
 }
 
-function addBullet(address, uuid) { // add bullet as a sibling
+function addBullet(address) { // add bullet as a sibling
   return {
     type: ADD_BULLET,
     exec: (state) => {
       let parent = getNode(ancestors(address), state.root);
-      parent.children.splice((getPosition(copy(address), state.root) + 1), 0, createNode(uuid));
-      focusNode({id: uuid});
+      let position = getPosition(copy(address), state.root);
+      let sibling = createNode();
+      parent.children.splice((position + 1), 0, sibling);
+      focusNode(sibling);
       return state;
     }
   }
 }
 
-function addSubBullet(address, uuid) { // add bullet as a child
+function addSubBullet(address) { // add bullet as a child
   return {
     type: ADD_SUB_BULLET,
     exec: (state) => {
+      let uuid = uuidv1();
       let parent = getNode(copy(address), state.root);
-      parent.children.push(createNode(uuid));
-      focusNode({id: uuid});
+      let child = createNode();
+      parent.children.push(child);
+      focusNode(child);
       return state;
     }
   }
@@ -511,7 +515,7 @@ function createNode(uuid=false) {
 
 function createRoot(uuid=false) {
   let identifier = uuid ? uuid : uuidv1();
-  return {
+  let root = {
     id: identifier,
     content: null,
     note: null,
@@ -519,7 +523,9 @@ function createRoot(uuid=false) {
     completed: null,
     focused: [identifier],
     children: []
-  }
+  };
+  root.children.push(createNode());
+  return root;
 }
 
 export { UPDATE_FOCUSED,
