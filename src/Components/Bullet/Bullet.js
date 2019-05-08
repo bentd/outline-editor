@@ -87,17 +87,12 @@ class Bullet extends Component {
         e.preventDefault(); // prevents cursor from moving to the beginning of the current bullet before moving up or down to the next bullet
         break;
       case KEY_U:
-        console.log();
-        console.log("pressed u");
-        console.log(e.nativeEvent);
         if (e.nativeEvent.metaKey) {
           e.preventDefault();
           let selection = window.getSelection();
           let text = selection.toString();
-          console.log(text);
           let html = this.content.current.innerHTML;
           let textIndex = html.indexOf(text);
-          console.log(html);
           let newHTML;
           if (html.slice((textIndex - OPENING_U_TAG_LENGTH), textIndex) === "<u>" &&
               html.slice((textIndex + text.length), (textIndex + text.length + CLOSING_U_TAG_LENGTH)) === "</u>") {
@@ -106,7 +101,6 @@ class Bullet extends Component {
           else {
             newHTML = html.replace(text, `<u>${ text }</u>`);
           }
-          console.log(newHTML);
           this.props.store.dispatch(Actions.editBullet(this.props.address, newHTML));
           this.setState({ content: newHTML });
           break;
