@@ -6,7 +6,7 @@
 
 .expand-icon,
 .bullet-icon {
-  background-color: transparent;
+  background-color: transparent !important;
 }
 
 .expand-icon:focus,
@@ -23,9 +23,6 @@
 .note-empty {
   display: none !important;
 }
-
-
-
 
 .note {
   word-wrap: break-word;

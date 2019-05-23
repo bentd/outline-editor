@@ -48,7 +48,13 @@ class App extends Component {
 
   initializeTree(item) {
     this.note = item;
-    let noteContent = yaml.load(item.content.text);
+    let noteContent;
+    try {
+      noteContent = yaml.load(item.content.text); // notes that begin with characters such as "," will throw error
+    }
+    catch {
+      noteContent = item.content.text;
+    }
     switch (typeof noteContent) {
       case "string": // is the user's note not in bullet format? no problem! just add the text to the first bullet
         this.store.dispatch(Actions.editBullet([this.state.root.id, this.state.root.children[0].id], noteContent));
@@ -58,13 +64,17 @@ class App extends Component {
       case null: // if the user's note is empty, just use the dummy bullets created in the constructor
         this.store.dispatch(Actions.updateRoot(this.state.root));
         break;
-      default:
+      case "object":
         if (Actions.isCorrectFormat(noteContent)) { // if the user's note is in proper bullet format, load the bullets into the editor
           this.store.dispatch(Actions.updateRoot(noteContent));
         }
         else { // if not, load the user's note data as a string into the first bullet
+          console.log("case object else");
           this.store.dispatch(Actions.editBullet([this.state.root.id, this.state.root.children[0].id], JSON.stringify(noteContent)));
         }
+        break;
+      default:
+        break;
     }
   }
 

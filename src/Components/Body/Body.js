@@ -1,6 +1,5 @@
 // VENDOR
 import React, { Component } from "react";
-import uuidv1 from "uuid/v1";
 
 // APP
 import "./Body.css";

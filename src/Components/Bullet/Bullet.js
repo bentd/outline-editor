@@ -2,12 +2,11 @@
 import $ from "jquery";
 import React, { Component } from "react";
 import { Collapse } from "react-bootstrap";
-import uuidv1 from "uuid/v1";
 
 // APP
 import "./Bullet.css";
 import * as Actions from "../../Actions/Actions.js";
-import { KEY_BACKSPACE, KEY_TAB, KEY_ENTER, KEY_UP, KEY_DOWN, KEY_U, CLOSING_U_TAG_LENGTH, OPENING_U_TAG_LENGTH } from "../../Constants/Constants.js";
+import { KEY_BACKSPACE, KEY_TAB, KEY_ENTER, KEY_UP, KEY_DOWN, KEY_U, CLOSING_U_TAG, OPENING_U_TAG } from "../../Constants/Constants.js";
 
 
 class Bullet extends Component {
@@ -19,6 +18,8 @@ class Bullet extends Component {
     // values which are used to update the redux store
     this.content = React.createRef();
     this.note = React.createRef();
+
+    this.store = this.props.store;
 
     this.state = {
       // contains the bullet's content, note, completed bool, and collapsed bool data along with its address (an array of the identifiers of it and its parents) all of which can be seen in plain view
@@ -72,6 +73,17 @@ class Bullet extends Component {
           Actions.focusNodeNote({ id: this.state.id });
           break;
         }
+        else if (e.nativeEvent.metaKey) { // completed bullet
+          if (this.content.current.innerHTML.indexOf("<strike>") === 0 &&
+              this.content.current.innerHTML.indexOf("</strike>") === this.content.current.innerHTML.length - 9) {
+            this.content.current.innerHTML = this.content.current.innerHTML.replace("<strike>", "").replace("</strike>", "");
+            this.props.store.dispatch(Actions.toggleBulletCompletion(this.props.address));
+          }
+          else {
+            this.content.current.innerHTML = "<strike>" + this.content.current.innerHTML + "</strike>";
+            this.props.store.dispatch(Actions.toggleBulletCompletion(this.props.address));
+          }
+        }
         else { // enter > add a bullet as a new child or as a new sibling
           if (!this.state.collapsed && (this.state.children.length > 0)) {
             this.props.store.dispatch(Actions.addSubBullet(this.props.address));
@@ -87,26 +99,39 @@ class Bullet extends Component {
         e.preventDefault(); // prevents cursor from moving to the beginning of the current bullet before moving up or down to the next bullet
         break;
       case KEY_U:
-        if (e.nativeEvent.metaKey) {
+        if (e.nativeEvent.metaKey) { // cmd + u does not work so it must be polyfilled
           e.preventDefault();
           let selection = window.getSelection();
-          let text = selection.toString();
-          let html = this.content.current.innerHTML;
-          let textIndex = html.indexOf(text);
-          let newHTML;
-          if (html.slice((textIndex - OPENING_U_TAG_LENGTH), textIndex) === "<u>" &&
-              html.slice((textIndex + text.length), (textIndex + text.length + CLOSING_U_TAG_LENGTH)) === "</u>") {
-            newHTML = html.replace(`<u>${ text }</u>`, text);
+          console.log(selection);
+
+          let { anchorNode, focusNode } = selection;
+
+          if (!anchorNode.isSameNode(focusNode)) {
+              if (anchorNode.parentNode.nodeName !== "U") {
+                $(anchorNode).wrap("<u></u>");
+              } else {
+                $(anchorNode).unwrap();
+              }
+              if (focusNode.parentNode.nodeName !== "U") {
+                $(focusNode).wrap("<u></u>");
+              } else {
+                $(focusNode).unwrap();
+              }
+          } else {
+            let leading = selection.anchorNode,
+                trailing = leading.splitText(selection.focusOffset),
+                selected = leading.splitText(selection.anchorOffset);
+            if (selected.parentNode.nodeName !== "U") {
+              $(selected).wrap("<u></u>");
+            }
+            else {
+              $(selected).unwrap();
+            }
           }
-          else {
-            newHTML = html.replace(text, `<u>${ text }</u>`);
-          }
-          this.props.store.dispatch(Actions.editBullet(this.props.address, newHTML));
-          this.setState({ content: newHTML });
-          break;
         }
+        break;
       default:
-        if (["\n", ""].indexOf(this.content.current.innerHTML) !== -1 && this.state.children.length === 0) {
+        if (["\n", ""].indexOf(this.content.current.innerText) !== -1 && this.state.children.length === 0) {
           this.setState({ deletable: true }); // can the bullet be deleted?
         }
         break;
@@ -114,7 +139,6 @@ class Bullet extends Component {
   }
 
   onKeyUp(e) {
-
     switch (e.keyCode) {
       case KEY_BACKSPACE:
         if (this.state.deletable) { // delete bullet
@@ -134,9 +158,6 @@ class Bullet extends Component {
         this.props.store.dispatch(Actions.goDown(this.props.address));
         break;
       case KEY_U:
-        if (e.nativeEvent.metaKey) {
-          break;
-        }
       default:
         this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerHTML)); // edit bullet's content in redux store
         this.setState({ deletable: false });
@@ -150,7 +171,7 @@ class Bullet extends Component {
         e.preventDefault();
         break;
       default:
-        if (this.note.current.innerText === "" && this.state.children.length === 0) {
+        if (this.note.current.innerHTML === "" && this.state.children.length === 0) {
           this.setState({ noteDeletable: true });
         }
         break;
@@ -167,7 +188,7 @@ class Bullet extends Component {
           e.preventDefault();
           break;
         }
-        this.setState({ noteEmpty: (this.note.current.innerText === "") });
+        this.setState({ noteEmpty: (this.note.current.innerHTML === "") });
         break;
       case KEY_UP:
         e.preventDefault();
@@ -178,7 +199,7 @@ class Bullet extends Component {
         this.props.store.dispatch(Actions.goDown(this.props.address));
         break;
       default:
-        this.props.store.dispatch(Actions.editBulletNote(this.props.address, this.note.current.innerText));
+        this.props.store.dispatch(Actions.editBulletNote(this.props.address, this.note.current.innerHTML));
         this.setState({ noteDeletable: false, noteActive: true });
     }
   }
@@ -449,8 +470,8 @@ class Bullet extends Component {
                  onDragEnter={ this.onDragChildEnter.bind(this) }
                  onDragOver={ this.onDragChildOver.bind(this) }
                  onDragLeave={ this.onDragChildLeave.bind(this) }
-                 onDrop={ this.onDropChild.bind(this) }>
-              { this.state.note }
+                 onDrop={ this.onDropChild.bind(this) }
+                 dangerouslySetInnerHTML={{ __html: this.state.note }}>
             </div>
           </div>
         </div>

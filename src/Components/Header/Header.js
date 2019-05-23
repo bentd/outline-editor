@@ -1,9 +1,11 @@
 // VENDOR
+import $ from "jquery";
 import React, { Component } from "react";
 
 // APP
 import "./Header.css";
 import * as Actions from "../../Actions/Actions.js";
+import { KEY_ENTER, KEY_TAB, KEY_U } from "../../Constants/Constants.js";
 
 
 class Header extends Component {
@@ -19,13 +21,52 @@ class Header extends Component {
   onKeyDown(e) {
   }
 
+  onKeyDown(e) {
+    switch (e.keyCode) {
+      case KEY_ENTER:
+        e.preventDefault();
+        if (e.shiftKey) { // shift + enter > activate note for editing
+          this.note.current.focus();
+          break;
+        }
+        else { // enter > add a bullet as a new child
+          this.props.store.dispatch(Actions.addSubBullet(this.props.address));
+          break;
+        }
+      case KEY_U:
+        if (e.nativeEvent.metaKey) { // cmd + u does not work so it must be polyfilled
+          e.preventDefault();
+          let selection = window.getSelection();
+          let leading = selection.anchorNode;
+          let trailing = leading.splitText(selection.focusOffset);
+          let selected = leading.splitText(selection.anchorOffset)
+          let jNode = $(selected);
+
+          if (selected.parentNode.nodeName !== "U") {
+            jNode.wrap("<u></u>");
+          }
+          else {
+            jNode.unwrap();
+          }
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
   onKeyUp(e) {
-    this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerText)); // edit bullet's content in redux store
+    switch (e.keyCode) {
+      case KEY_ENTER:
+        e.preventDefault();
+      default:
+        this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerHTML)); // edit bullet's content in redux store
+    }
   }
 
   onNoteKeyDown(e) {
     switch(e.keyCode) {
-      case 9: // tab
+      case KEY_TAB: // tab
         e.preventDefault();
         break;
       default:
@@ -34,7 +75,7 @@ class Header extends Component {
   }
 
   onNoteKeyUp(e) {
-    this.props.store.dispatch(Actions.editBulletNote(this.props.address, this.note.current.innerText));
+    this.props.store.dispatch(Actions.editBulletNote(this.props.address, this.note.current.innerHTML));
   }
 
   componentDidMount() {
@@ -61,8 +102,8 @@ class Header extends Component {
              suppressContentEditableWarning="true"
              ref={ this.content }
              onKeyDown={ this.onKeyDown.bind(this) }
-             onKeyUp={ this.onKeyUp.bind(this) }>
-          { this.state.content }
+             onKeyUp={ this.onKeyUp.bind(this) }
+             dangerouslySetInnerHTML={{ __html: this.state.content }}>
         </div>
         <div className="header-note lead"
              id="root-bullet-note"
@@ -70,8 +111,8 @@ class Header extends Component {
              suppressContentEditableWarning="true"
              ref={ this.note }
              onKeyDown={ this.onNoteKeyDown.bind(this) }
-             onKeyUp={ this.onNoteKeyUp.bind(this) }>
-          { this.state.note }
+             onKeyUp={ this.onNoteKeyUp.bind(this) }
+             dangerouslySetInnerHTML={{ __html: this.state.note }}>
         </div>
       </div>
     )

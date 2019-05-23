@@ -1,5 +1,5 @@
 {
-  "short_name": "Bullet Editor",
+  "short_name": "Outline Editor",
   "name": "Bullet note taking application",
   "icons": [
     {
@@ -9,7 +9,5 @@
     }
   ],
   "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "display": "standalone"
 }

@@ -12,6 +12,7 @@ const INDENT_BULLET = "INDENT_BULLET";
 const UNINDENT_BULLET = "UNINDENT_BULLET";
 const MOVE_BULLET = "MOVE_BULLET";
 const EDIT_BULLET_NOTE = "EDIT_BULLET_NOTE";
+const TOGGLE_BULLET_COMPLETION = "TOGGLE_BULLET_COMPLETION";
 const GO_DOWN = "GO_DOWN";
 const GO_UP = "GO_UP";
 const TOGGLE_COLLAPSE = "TOGGLE_COLLAPSE";
@@ -55,7 +56,6 @@ function addSubBullet(address) { // add bullet as a child
   return {
     type: ADD_SUB_BULLET,
     exec: (state) => {
-      let uuid = uuidv1();
       let parent = getNode(copy(address), state.root);
       let child = createNode();
       parent.children.push(child);
@@ -96,9 +96,12 @@ function deleteBullet(address) {
         return state;
       }
       else {
+
         parent.children.splice(position, 1);
         if (parent.children.length > 0) {
-          focusNode(parent);
+          if (address.length > 2) {
+            focusNode(parent);
+          }
         }
         return state;
       }
@@ -148,13 +151,15 @@ function unindentBullet(address) {
   }
 }
 
-function editBulletNote(address, content) {
+function editBulletNote(address, content, focus=false) {
   return {
     type: EDIT_BULLET_NOTE,
     exec: (state) => {
       let node = getNode(copy(address), state.root);
       node.note = content;
-      focusNodeNote(node);
+      if (focus) {
+        focusNodeNote(node);
+      }
       return state;
     }
   }
@@ -192,6 +197,17 @@ function moveBulletAsSibling(childAddress, newSiblingAddress, above) {
         newParent.children.splice((siblingPosition + 1), 0, child);
       }
       focusNode(child);
+      return state;
+    }
+  }
+}
+
+function toggleBulletCompletion(address) {
+  return {
+    type: TOGGLE_BULLET_COMPLETION,
+    exec: (state) => {
+      let node = getNode(copy(address), state.root);
+      node.completed = !(node.completed);
       return state;
     }
   }
@@ -465,7 +481,7 @@ function sameArray(array1, array2) {
   return true;
 }
 
-function isCorrectFormat(node, root=true) {
+function isCorrectFormat(node) {
   return node.id !== undefined &&
          node.content !== undefined &&
          node.completed !== undefined &&
@@ -538,6 +554,7 @@ export { UPDATE_FOCUSED,
          UNINDENT_BULLET,
          EDIT_BULLET_NOTE,
          MOVE_BULLET,
+         TOGGLE_BULLET_COMPLETION,
          GO_DOWN,
          GO_UP,
          TOGGLE_COLLAPSE,
@@ -556,6 +573,7 @@ export { UPDATE_FOCUSED,
          unCollapse,
          getNode,
          getTree,
+         toggleBulletCompletion,
          goUp,
          goDown,
          focusNode,

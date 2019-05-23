@@ -29,6 +29,8 @@ function Reducer(state, action) {
       return action.exec(state);
     case Actions.TOGGLE_COLLAPSE:
       return action.exec(state);
+    case Actions.TOGGLE_BULLET_COMPLETION:
+      return action.exec(state);
     default:
       return state;
   }

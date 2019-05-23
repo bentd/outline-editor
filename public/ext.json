@@ -1,6 +1,6 @@
 {
-    "identifier": "org.bentd.bullet-editor",
-    "name": "Bullet Editor",
+    "identifier": "org.standardnotes.outline-editor",
+    "name": "Outline Editor",
     "content_type": "SN|Component",
     "area": "editor-editor",
     "version": "1.0.0",

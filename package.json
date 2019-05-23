@@ -51,6 +51,7 @@
     "resolve": "1.10.0",
     "sass-loader": "7.1.0",
     "sn-components-api": "^1.2.3",
+    "sn-stylekit": "^2.0.14",
     "style-loader": "0.23.1",
     "terser-webpack-plugin": "1.2.2",
     "url-loader": "1.1.2",
