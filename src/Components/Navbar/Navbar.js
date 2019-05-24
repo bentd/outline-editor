@@ -19,7 +19,12 @@ class Navbar extends Component {
   }
 
   truncate(str, length=30) {
-    return str.replace(/(<)(b|i|u|(strike))(>)/gi, "").replace(/(<)(\/)(b|i|u|(strike))(>)/gi, "").substring(0, length - ELLIPSE.length) + ELLIPSE;
+    if (str.length <= length) {
+      return str.replace(/(<)(b|i|u|(strike))(>)/gi, "").replace(/(<)(\/)(b|i|u|(strike))(>)/gi, "")
+    }
+    else {
+      return str.replace(/(<)(b|i|u|(strike))(>)/gi, "").replace(/(<)(\/)(b|i|u|(strike))(>)/gi, "").substring(0, length - ELLIPSE.length) + ELLIPSE;
+    }
   }
 
   render() {
