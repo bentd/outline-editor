@@ -5,7 +5,7 @@ import React, { Component } from "react";
 // APP
 import "./Header.css";
 import * as Actions from "../../Actions/Actions.js";
-import { KEY_ENTER, KEY_TAB, KEY_U } from "../../Constants/Constants.js";
+import { KEY_ENTER, KEY_TAB, KEY_U, KEY_DOWN } from "../../Constants/Constants.js";
 
 
 class Header extends Component {
@@ -18,7 +18,16 @@ class Header extends Component {
     this.state = {};
   }
 
-  onKeyDown(e) {
+  focusNote() {
+    this.content.current.blur();
+    this.note.current.focus();
+    $(`#root-bullet-note`).focus();
+  }
+
+  focusContent() {
+    this.note.current.blur();
+    this.content.current.focus();
+    $("#root-bullet-content").focus();
   }
 
   onKeyDown(e) {
@@ -26,7 +35,7 @@ class Header extends Component {
       case KEY_ENTER:
         e.preventDefault();
         if (e.shiftKey) { // shift + enter > activate note for editing
-          this.note.current.focus();
+          this.focusNote();
           break;
         }
         else { // enter > add a bullet as a new child
@@ -37,19 +46,27 @@ class Header extends Component {
         if (e.nativeEvent.metaKey) { // cmd + u does not work so it must be polyfilled
           e.preventDefault();
           let selection = window.getSelection();
-          let leading = selection.anchorNode;
-          let trailing = leading.splitText(selection.focusOffset);
-          let selected = leading.splitText(selection.anchorOffset)
-          let jNode = $(selected);
+          let anchor = selection.anchorNode;
+          let selected = anchor.splitText(selection.anchorOffset)
+          let jNode = $(selected); // selected text isolated in text node using splitText method
 
-          if (selected.parentNode.nodeName !== "U") {
+          if (selected.parentNode.nodeName !== "U") { // wraps text around u tag
             jNode.wrap("<u></u>");
           }
           else {
-            jNode.unwrap();
+            jNode.unwrap(); // removes u tag around text
           }
         }
         break;
+      case KEY_DOWN:
+        if (this.state.focusedBullet.children.length === 0) {
+          this.props.store.dispatch(Actions.addSubBullet(this.props.address));
+          break;
+        }
+        else {
+          Actions.focusNode(this.state.focusedBullet.children[0]);
+          break;
+        }
       default:
         break;
     }
@@ -57,8 +74,6 @@ class Header extends Component {
 
   onKeyUp(e) {
     switch (e.keyCode) {
-      case KEY_ENTER:
-        e.preventDefault();
       default:
         this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerHTML)); // edit bullet's content in redux store
     }
@@ -66,16 +81,24 @@ class Header extends Component {
 
   onNoteKeyDown(e) {
     switch(e.keyCode) {
+      case KEY_ENTER:
+        e.preventDefault();
+        if (e.shiftKey) { // shift + enter > activate content for editing
+          this.focusContent();
+          break;
+        }
+        // eslint-disable-next-line        
       case KEY_TAB: // tab
         e.preventDefault();
         break;
       default:
-        break;
+        this.focusNote();
     }
   }
 
   onNoteKeyUp(e) {
-    this.props.store.dispatch(Actions.editBulletNote(this.props.address, this.note.current.innerHTML));
+    this.props.store.dispatch(Actions.editBulletNote(this.props.address, this.note.current.innerHTML)); // edit bullet's content in redux store
+    this.focusNote();
   }
 
   componentDidMount() {

@@ -6,7 +6,7 @@ import { Collapse } from "react-bootstrap";
 // APP
 import "./Bullet.css";
 import * as Actions from "../../Actions/Actions.js";
-import { KEY_BACKSPACE, KEY_TAB, KEY_ENTER, KEY_UP, KEY_DOWN, KEY_U, CLOSING_U_TAG, OPENING_U_TAG } from "../../Constants/Constants.js";
+import { KEY_BACKSPACE, KEY_TAB, KEY_ENTER, KEY_UP, KEY_DOWN, KEY_U } from "../../Constants/Constants.js";
 
 
 class Bullet extends Component {
@@ -53,6 +53,11 @@ class Bullet extends Component {
     this.setState({ expandVisible: false });
   }
 
+  onBlur(e) {
+    this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerHTML)); // edit bullet's content in redux store
+    this.props.store.dispatch(Actions.editBulletNote(this.props.address, this.note.current.innerHTML));
+  }
+
   onKeyDown(e) {
     switch (e.keyCode) {
       case KEY_TAB:
@@ -94,6 +99,7 @@ class Bullet extends Component {
             break;
           }
         }
+        // eslint-disable-next-line
       case KEY_UP:
       case KEY_DOWN:
         e.preventDefault(); // prevents cursor from moving to the beginning of the current bullet before moving up or down to the next bullet
@@ -102,7 +108,6 @@ class Bullet extends Component {
         if (e.nativeEvent.metaKey) { // cmd + u does not work so it must be polyfilled
           e.preventDefault();
           let selection = window.getSelection();
-          console.log(selection);
 
           let { anchorNode, focusNode } = selection;
 
@@ -119,7 +124,6 @@ class Bullet extends Component {
               }
           } else {
             let leading = selection.anchorNode,
-                trailing = leading.splitText(selection.focusOffset),
                 selected = leading.splitText(selection.anchorOffset);
             if (selected.parentNode.nodeName !== "U") {
               $(selected).wrap("<u></u>");
@@ -144,10 +148,10 @@ class Bullet extends Component {
         if (this.state.deletable) { // delete bullet
           this.props.store.dispatch(Actions.deleteBullet(this.props.address));
           e.preventDefault();
+          this.setState({ deletable: false });
           break;
         }
         this.props.store.dispatch(Actions.editBullet(this.props.address, this.content.current.innerHTML)); // edit bullet's content in redux store
-        this.setState({ deletable: false });
         break;
       case KEY_UP: // go up a bullet
         e.preventDefault();
@@ -171,7 +175,7 @@ class Bullet extends Component {
         e.preventDefault();
         break;
       default:
-        if (this.note.current.innerHTML === "" && this.state.children.length === 0) {
+        if (["\n", ""].indexOf(this.note.current.innerText) !== -1 && this.state.children.length === 0) {
           this.setState({ noteDeletable: true });
         }
         break;
@@ -188,7 +192,7 @@ class Bullet extends Component {
           e.preventDefault();
           break;
         }
-        this.setState({ noteEmpty: (this.note.current.innerHTML === "") });
+        this.setState({ noteEmpty: ["\n", ""].indexOf(this.note.current.innerText) !== -1 });
         break;
       case KEY_UP:
         e.preventDefault();
@@ -447,12 +451,13 @@ class Bullet extends Component {
                onDragOver={ this.onDragChildOver.bind(this) }
                onDragLeave={ this.onDragChildLeave.bind(this) }
                onDrop={ this.onDropChild.bind(this) }>
-            <div className={ "content " + (this.state.noteEmpty ? "w-100" : "") }
+            <div className="content"
                  contentEditable="true"
                  suppressContentEditableWarning="true"
                  ref={ this.content }
                  onKeyDown={ this.onKeyDown.bind(this) }
                  onKeyUp={ this.onKeyUp.bind(this) }
+                 onBlur={ this.onBlur.bind(this) }
                  dangerouslySetInnerHTML={{ __html: this.state.content }}>
             </div>
           </div>

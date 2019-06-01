@@ -69,7 +69,6 @@ class App extends Component {
           this.store.dispatch(Actions.updateRoot(noteContent));
         }
         else { // if not, load the user's note data as a string into the first bullet
-          console.log("case object else");
           this.store.dispatch(Actions.editBullet([this.state.root.id, this.state.root.children[0].id], JSON.stringify(noteContent)));
         }
         break;

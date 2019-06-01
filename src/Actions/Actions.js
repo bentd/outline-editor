@@ -186,10 +186,10 @@ function moveBulletAsSibling(childAddress, newSiblingAddress, above) {
     type: MOVE_BULLET,
     exec: (state) => {
       let childPosition = getPosition(copy(childAddress), state.root);
-      let siblingPosition = getPosition(copy(newSiblingAddress), state.root);
       let newParent = getNode(ancestors(newSiblingAddress), state.root);
       let oldParent = getNode(ancestors(childAddress), state.root);
       let child = oldParent.children.splice(childPosition, 1)[0];
+      let siblingPosition = getPosition(copy(newSiblingAddress), state.root);
       if (above) {
         newParent.children.splice(siblingPosition, 0, child);
       }
